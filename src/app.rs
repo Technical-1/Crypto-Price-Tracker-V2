@@ -91,6 +91,7 @@ pub struct App {
     pub loading: bool,
     pub show_help: bool,
     pub should_quit: bool,
+    pub history: Vec<crate::perf::Snapshot>,
 }
 
 impl App {
@@ -113,6 +114,7 @@ impl App {
             loading: false,
             show_help: false,
             should_quit: false,
+            history: Vec::new(),
             config,
             model,
         };
@@ -238,6 +240,10 @@ impl App {
             CostBasisMethod::Average => "AVG",
             CostBasisMethod::SpecificId => "SPEC",
         }
+    }
+
+    pub fn perf_metrics(&self) -> crate::perf::PerfMetrics {
+        crate::perf::metrics(&self.history)
     }
 }
 
