@@ -201,11 +201,14 @@ fn do_export(app: &mut App) {
     match app.view {
         View::Tax => {
             if let Some(cg) = &app.derived.capital_gains {
-                let path = format!("capital-gains-{}-{}.csv", app.tax_year, stamp);
-                match export::export_capital_gains_csv(cg, &path) {
-                    Ok(()) => app.status.message = format!("exported {path}"),
-                    Err(e) => app.status.message = format!("export failed: {e}"),
-                }
+                let csv = format!("capital-gains-{}-{}.csv", app.tax_year, stamp);
+                let json = format!("capital-gains-{}-{}.json", app.tax_year, stamp);
+                let result = export::export_capital_gains_csv(cg, &csv)
+                    .and_then(|()| export::export_capital_gains_json(cg, &json));
+                app.status.message = match result {
+                    Ok(()) => format!("exported {csv} + {json}"),
+                    Err(e) => format!("export failed: {e}"),
+                };
             }
         }
         View::Holdings => {
@@ -215,11 +218,14 @@ fn do_export(app: &mut App) {
                 .iter()
                 .map(|h| h.holding.clone())
                 .collect();
-            let path = format!("holdings-{}.csv", stamp);
-            match export::export_holdings_csv(&holdings, &path) {
-                Ok(()) => app.status.message = format!("exported {path}"),
-                Err(e) => app.status.message = format!("export failed: {e}"),
-            }
+            let csv = format!("holdings-{}.csv", stamp);
+            let json = format!("holdings-{}.json", stamp);
+            let result = export::export_holdings_csv(&holdings, &csv)
+                .and_then(|()| export::export_holdings_json(&holdings, &json));
+            app.status.message = match result {
+                Ok(()) => format!("exported {csv} + {json}"),
+                Err(e) => format!("export failed: {e}"),
+            };
         }
         _ => app.status.message = "export available on Tax/Holdings views".into(),
     }
