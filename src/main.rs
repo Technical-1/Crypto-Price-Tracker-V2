@@ -1,6 +1,7 @@
 mod app;
 mod config;
 mod error;
+mod event;
 mod export;
 mod ledger;
 mod perf;
@@ -12,7 +13,7 @@ use std::io::{self, Stdout};
 use std::panic;
 
 use anyhow::Result;
-use crossterm::event::{self, Event, KeyCode};
+use crossterm::event::{self as ct_event, Event, KeyCode};
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
@@ -56,7 +57,7 @@ async fn main() -> Result<()> {
             f.render_widget(widget, f.area());
         })?;
 
-        if let Event::Key(key) = event::read()? {
+        if let Event::Key(key) = ct_event::read()? {
             if matches!(key.code, KeyCode::Char('q')) {
                 break;
             }
