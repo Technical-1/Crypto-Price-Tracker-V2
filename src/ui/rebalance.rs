@@ -1,18 +1,63 @@
 //! View 5: target vs current allocation and suggested (tax-aware) trades.
 
+use std::collections::BTreeMap;
+
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table};
 use ratatui::Frame;
+use rust_decimal::prelude::ToPrimitive;
+use rust_decimal::Decimal;
 
 use crate::app::App;
 use crate::rebalance::{RebalanceSide, Strategy};
 
+/// A block-bar gauge for a percentage (0..100), ~20 cells wide (each cell = 5%).
+fn bar(pct: Decimal) -> String {
+    let cells = ((pct.to_f64().unwrap_or(0.0) / 5.0).round() as i64).clamp(0, 20) as usize;
+    "\u{2588}".repeat(cells)
+}
+
 pub fn render(f: &mut Frame, area: Rect, app: &App) {
+    // Build the current-vs-target comparison lines first (height depends on count).
+    let targets = app.config.normalized_targets();
+    let mut compare_lines: Vec<Line> = Vec::new();
+    if let Some(report) = &app.derived.valuation {
+        let mut cur: BTreeMap<String, Decimal> = BTreeMap::new();
+        for av in &report.assets {
+            cur.insert(av.asset.clone(), av.allocation);
+        }
+        let mut keys: Vec<String> = cur.keys().cloned().collect();
+        for k in targets.keys() {
+            if !cur.contains_key(k) {
+                keys.push(k.clone());
+            }
+        }
+        keys.sort();
+        keys.dedup();
+        for asset in keys {
+            let cur_pct = cur.get(&asset).copied().unwrap_or(Decimal::ZERO) * Decimal::from(100);
+            let tgt_pct = targets.get(&asset).copied().unwrap_or(Decimal::ZERO) * Decimal::from(100);
+            compare_lines.push(Line::from(format!(
+                "{:>6}  cur {:<20} {:>5.1}%   tgt {:<20} {:>5.1}%",
+                app.config.symbol(&asset),
+                bar(cur_pct),
+                cur_pct,
+                bar(tgt_pct),
+                tgt_pct,
+            )));
+        }
+    }
+    let compare_h = (compare_lines.len() as u16 + 2).clamp(3, 12);
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(1)])
+        .constraints([
+            Constraint::Length(3),
+            Constraint::Length(compare_h),
+            Constraint::Min(1),
+        ])
         .split(area);
 
     let strat = match app.strategy {
@@ -21,10 +66,10 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
     };
     let banner = match &app.derived.rebalance_summary {
         Some(s) if s.in_balance => {
-            Line::from(format!("✓ In balance — strategy {strat} (t to toggle)"))
+            Line::from(format!("\u{2713} In balance — strategy {strat} (t to toggle)"))
         }
         Some(s) => Line::from(format!(
-            "⚠ Out of balance — buys {:.2} / sells {:.2} — strategy {strat} (t to toggle)",
+            "\u{26a0} Out of balance — buys {:.2} / sells {:.2} — strategy {strat} (t to toggle)",
             s.total_buys, s.total_sells
         )),
         None => Line::from("No valuation yet — fetch prices with `r`."),
@@ -32,6 +77,12 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
     f.render_widget(
         Paragraph::new(banner).block(Block::default().borders(Borders::ALL).title(" Rebalance ")),
         chunks[0],
+    );
+
+    f.render_widget(
+        Paragraph::new(compare_lines)
+            .block(Block::default().borders(Borders::ALL).title(" Current vs Target ")),
+        chunks[1],
     );
 
     let header = Row::new(
@@ -44,7 +95,7 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
         .valuation
         .as_ref()
         .map(|r| r.total_value)
-        .unwrap_or(rust_decimal::Decimal::ONE);
+        .unwrap_or(Decimal::ONE);
     let rows: Vec<Row> = app
         .derived
         .rebalance_actions
@@ -55,16 +106,16 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
                 RebalanceSide::Sell => ("SELL", Style::default().fg(Color::Red)),
             };
             let drift_pct = if total.is_zero() {
-                rust_decimal::Decimal::ZERO
+                Decimal::ZERO
             } else {
-                a.drift / total * rust_decimal::Decimal::from(100)
+                a.drift / total * Decimal::from(100)
             };
             let est = match a.side {
                 RebalanceSide::Sell => a
                     .est_realized_gain
                     .map(|g| format!("{:+.2}", g))
-                    .unwrap_or_else(|| "—".into()),
-                RebalanceSide::Buy => "—".into(),
+                    .unwrap_or_else(|| "\u{2014}".into()),
+                RebalanceSide::Buy => "\u{2014}".into(),
             };
             Row::new(vec![
                 Cell::from(side).style(style),
@@ -89,7 +140,7 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
                 .borders(Borders::ALL)
                 .title(" Suggested trades (estimates) "),
         ),
-        chunks[1],
+        chunks[2],
     );
 }
 
@@ -152,5 +203,7 @@ mod tests {
         assert!(s.contains("AMOUNT"));
         assert!(s.contains("DRIFT"));
         assert!(s.contains("balance")); // in/out of balance banner
+        assert!(s.contains("Current vs Target"));
+        assert!(s.contains("tgt"));
     }
 }
