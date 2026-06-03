@@ -92,18 +92,17 @@ async fn main() -> Result<()> {
     install_panic_hook();
     let mut terminal = setup_terminal()?;
 
-    let (tx, mut rx) = mpsc::channel::<PriceBook>(4);
+    let (tx, mut rx) = mpsc::channel::<Result<PriceBook, String>>(4);
     let mut events = EventStream::new();
     let mut tick = tokio::time::interval(Duration::from_secs(config.refresh_seconds.max(1)));
 
-    let spawn_fetch = |tx: mpsc::Sender<PriceBook>| {
+    let spawn_fetch = |tx: mpsc::Sender<Result<PriceBook, String>>| {
         let ids = asset_ids.clone();
         let vs = vs.clone();
         tokio::spawn(async move {
             let source = CoinGeckoSource::new();
-            if let Ok(book) = source.fetch(&ids, &vs).await {
-                let _ = tx.send(book).await;
-            }
+            let msg = source.fetch(&ids, &vs).await.map_err(|e| e.to_string());
+            let _ = tx.send(msg).await;
         });
     };
 
@@ -136,14 +135,14 @@ async fn run(
     app: &mut App,
     terminal: &mut Tui,
     events: &mut EventStream,
-    rx: &mut mpsc::Receiver<PriceBook>,
-    tx: &mpsc::Sender<PriceBook>,
+    rx: &mut mpsc::Receiver<Result<PriceBook, String>>,
+    tx: &mpsc::Sender<Result<PriceBook, String>>,
     cache: &PriceCache,
     history_path: &str,
     refresh_seconds: u64,
     offline: bool,
     tick: &mut tokio::time::Interval,
-    spawn_fetch: impl Fn(mpsc::Sender<PriceBook>),
+    spawn_fetch: impl Fn(mpsc::Sender<Result<PriceBook, String>>),
 ) -> Result<()> {
     loop {
         terminal.draw(|f| ui::draw(f, app))?;
@@ -173,16 +172,24 @@ async fn run(
                     spawn_fetch(tx.clone());
                 }
             }
-            Some(book) = rx.recv() => {
-                let _ = cache.store(&book);
-                app.set_prices(book);
-                if let Some(report) = &app.derived.valuation {
-                    let _ = perf::record_snapshot(
-                        history_path, report.total_value, Utc::now(), refresh_seconds as i64,
-                    );
-                }
-                if let Ok(h) = perf::load_history(history_path) {
-                    app.history = h;
+            Some(result) = rx.recv() => {
+                match result {
+                    Ok(book) => {
+                        let _ = cache.store(&book);
+                        app.set_prices(book);
+                        if let Some(report) = &app.derived.valuation {
+                            let _ = perf::record_snapshot(
+                                history_path, report.total_value, Utc::now(), refresh_seconds as i64,
+                            );
+                        }
+                        if let Ok(h) = perf::load_history(history_path) {
+                            app.history = h;
+                        }
+                    }
+                    Err(e) => {
+                        app.loading = false;
+                        app.status.message = format!("fetch error: {e}");
+                    }
                 }
             }
         }
