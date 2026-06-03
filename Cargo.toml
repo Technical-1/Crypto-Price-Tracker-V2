@@ -20,6 +20,7 @@ anyhow = "1"
 thiserror = "1"
 clap = { version = "4", features = ["derive"] }
 reqwest = "0.12"
+futures = "0.3"
 
 
 [profile.release]

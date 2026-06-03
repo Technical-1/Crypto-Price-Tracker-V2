@@ -1,34 +1,50 @@
-mod app;
-mod config;
-mod error;
-mod event;
-mod export;
-mod ledger;
-mod perf;
-mod portfolio;
-mod prices;
-mod rebalance;
-mod ui;
-
 use std::io::{self, Stdout};
 use std::panic;
+use std::time::Duration;
 
-use anyhow::Result;
-use crossterm::event::{self as ct_event, Event, KeyCode};
+use anyhow::{Context, Result};
+use chrono::Utc;
+use clap::Parser;
+use crossterm::event::{Event, EventStream, KeyEventKind};
+use crossterm::execute;
 use crossterm::terminal::{
     disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
 };
-use crossterm::execute;
+use futures::StreamExt;
 use ratatui::backend::CrosstermBackend;
-use ratatui::widgets::{Block, Borders, Paragraph};
 use ratatui::Terminal;
+use tokio::sync::mpsc;
+
+use crypto_price_tracker_v2::app::{App, View};
+use crypto_price_tracker_v2::config::Config;
+use crypto_price_tracker_v2::event::{apply, map_key, Action};
+use crypto_price_tracker_v2::ledger::{self, load_ledger};
+use crypto_price_tracker_v2::perf;
+use crypto_price_tracker_v2::prices::cache::PriceCache;
+use crypto_price_tracker_v2::prices::coingecko::CoinGeckoSource;
+use crypto_price_tracker_v2::prices::{PriceBook, PriceSource};
+use crypto_price_tracker_v2::{export, ui};
 
 type Tui = Terminal<CrosstermBackend<Stdout>>;
+
+#[derive(Parser, Debug)]
+#[command(name = "crypto-price-tracker-v2")]
+struct Args {
+    #[arg(long, default_value = "config.json")]
+    config: String,
+    #[arg(long)]
+    ledger: Option<String>,
+    #[arg(long)]
+    offline: bool,
+}
 
 fn install_panic_hook() {
     let original = panic::take_hook();
     panic::set_hook(Box::new(move |info| {
-        let _ = restore_terminal();
+        // Best-effort restore using a fresh stdout handle (the live Terminal is
+        // not reachable from here during unwind).
+        let _ = disable_raw_mode();
+        let _ = execute!(io::stdout(), LeaveAlternateScreen);
         original(info);
     }));
 }
@@ -40,31 +56,144 @@ fn setup_terminal() -> Result<Tui> {
     Ok(Terminal::new(CrosstermBackend::new(stdout))?)
 }
 
-fn restore_terminal() -> Result<()> {
+fn restore_terminal(terminal: &mut Tui) -> Result<()> {
     disable_raw_mode()?;
-    execute!(io::stdout(), LeaveAlternateScreen)?;
+    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
     Ok(())
 }
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let args = Args::parse();
+    let config = Config::load(&args.config).context("loading config")?;
+    let ledger_path = args.ledger.clone().unwrap_or_else(|| config.ledger_path.clone());
+    let txs = load_ledger(&ledger_path).context("loading ledger")?;
+    let asset_ids: Vec<String> = ledger::assets(&txs).into_iter().collect();
+
+    let mut app = App::new(config.clone(), &txs).context("building app")?;
+    let cache = PriceCache::new(config.cache.expanded_dir(), config.cache.ttl_seconds);
+    let vs = config.display_currency.clone();
+    let history_path = "history.json".to_string();
+
+    if let Ok(Some(book)) = cache.load_fresh() {
+        app.set_prices(book);
+    } else if let Ok(Some(book)) = cache.load_last_good() {
+        app.set_prices(book);
+    }
+
+    // Load any existing history for the Performance view.
+    if let Ok(h) = perf::load_history(&history_path) {
+        app.history = h;
+    }
+
     install_panic_hook();
     let mut terminal = setup_terminal()?;
 
-    loop {
-        terminal.draw(|f| {
-            let widget = Paragraph::new("Crypto-Price-Tracker-V2 — press q to quit")
-                .block(Block::default().borders(Borders::ALL));
-            f.render_widget(widget, f.area());
-        })?;
+    let (tx, mut rx) = mpsc::channel::<PriceBook>(4);
+    let mut events = EventStream::new();
+    let mut tick = tokio::time::interval(Duration::from_secs(config.refresh_seconds.max(1)));
 
-        if let Event::Key(key) = ct_event::read()? {
-            if matches!(key.code, KeyCode::Char('q')) {
-                break;
+    let spawn_fetch = |tx: mpsc::Sender<PriceBook>| {
+        let ids = asset_ids.clone();
+        let vs = vs.clone();
+        tokio::spawn(async move {
+            let source = CoinGeckoSource::new();
+            if let Ok(book) = source.fetch(&ids, &vs).await {
+                let _ = tx.send(book).await;
+            }
+        });
+    };
+
+    if !args.offline {
+        app.loading = true;
+        spawn_fetch(tx.clone());
+    }
+
+    let res = run(&mut app, &mut terminal, &mut events, &mut rx, &tx, &cache, &history_path,
+                  config.refresh_seconds, args.offline, &mut tick, spawn_fetch).await;
+
+    restore_terminal(&mut terminal)?;
+    res
+}
+
+#[allow(clippy::too_many_arguments)]
+async fn run(
+    app: &mut App,
+    terminal: &mut Tui,
+    events: &mut EventStream,
+    rx: &mut mpsc::Receiver<PriceBook>,
+    tx: &mpsc::Sender<PriceBook>,
+    cache: &PriceCache,
+    history_path: &str,
+    refresh_seconds: u64,
+    offline: bool,
+    tick: &mut tokio::time::Interval,
+    spawn_fetch: impl Fn(mpsc::Sender<PriceBook>),
+) -> Result<()> {
+    loop {
+        terminal.draw(|f| ui::draw(f, app))?;
+        if app.should_quit {
+            return Ok(());
+        }
+
+        tokio::select! {
+            maybe_event = events.next() => {
+                if let Some(Ok(Event::Key(key))) = maybe_event {
+                    if key.kind == KeyEventKind::Press {
+                        if let Some(action) = map_key(key) {
+                            let wants_refresh = apply(app, action);
+                            if action == Action::Export {
+                                do_export(app);
+                            }
+                            if wants_refresh && !offline {
+                                spawn_fetch(tx.clone());
+                            }
+                        }
+                    }
+                }
+            }
+            _ = tick.tick() => {
+                if !offline {
+                    app.loading = true;
+                    spawn_fetch(tx.clone());
+                }
+            }
+            Some(book) = rx.recv() => {
+                let _ = cache.store(&book);
+                app.set_prices(book);
+                if let Some(report) = &app.derived.valuation {
+                    let _ = perf::record_snapshot(
+                        history_path, report.total_value, Utc::now(), refresh_seconds as i64,
+                    );
+                }
+                if let Ok(h) = perf::load_history(history_path) {
+                    app.history = h;
+                }
             }
         }
     }
+}
 
-    restore_terminal()?;
-    Ok(())
+fn do_export(app: &mut App) {
+    let stamp = Utc::now().format("%Y%m%d-%H%M%S");
+    match app.view {
+        View::Tax => {
+            if let Some(cg) = &app.derived.capital_gains {
+                let path = format!("capital-gains-{}-{}.csv", app.tax_year, stamp);
+                match export::export_capital_gains_csv(cg, &path) {
+                    Ok(()) => app.status.message = format!("exported {path}"),
+                    Err(e) => app.status.message = format!("export failed: {e}"),
+                }
+            }
+        }
+        View::Holdings => {
+            let holdings: Vec<_> = app.derived.holdings.iter().map(|h| h.holding.clone()).collect();
+            let path = format!("holdings-{}.csv", stamp);
+            match export::export_holdings_csv(&holdings, &path) {
+                Ok(()) => app.status.message = format!("exported {path}"),
+                Err(e) => app.status.message = format!("export failed: {e}"),
+            }
+        }
+        _ => app.status.message = "export available on Tax/Holdings views".into(),
+    }
 }
