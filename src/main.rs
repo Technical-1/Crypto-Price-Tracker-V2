@@ -1,4 +1,6 @@
+mod config;
 mod error;
+mod rebalance;
 
 use std::io::{self, Stdout};
 use std::panic;
