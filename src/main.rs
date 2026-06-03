@@ -1,6 +1,7 @@
 mod config;
 mod error;
 mod ledger;
+mod prices;
 mod rebalance;
 
 use std::io::{self, Stdout};
