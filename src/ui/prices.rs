@@ -252,7 +252,10 @@ mod tests {
             fetched_at: Utc::now(),
             sparklines: {
                 let mut sp = HashMap::new();
-                sp.insert("bitcoin".to_string(), vec![100.0, 101.0, 102.0, 101.5, 103.0, 104.0, 103.5, 105.0]);
+                sp.insert(
+                    "bitcoin".to_string(),
+                    vec![100.0, 101.0, 102.0, 101.5, 103.0, 104.0, 103.5, 105.0],
+                );
                 sp
             },
             stale: false,

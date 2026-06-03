@@ -38,7 +38,8 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
         keys.dedup();
         for asset in keys {
             let cur_pct = cur.get(&asset).copied().unwrap_or(Decimal::ZERO) * Decimal::from(100);
-            let tgt_pct = targets.get(&asset).copied().unwrap_or(Decimal::ZERO) * Decimal::from(100);
+            let tgt_pct =
+                targets.get(&asset).copied().unwrap_or(Decimal::ZERO) * Decimal::from(100);
             compare_lines.push(Line::from(format!(
                 "{:>6}  cur {:<20} {:>5.1}%   tgt {:<20} {:>5.1}%",
                 app.config.symbol(&asset),
@@ -65,9 +66,9 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
         Strategy::Full => "Full",
     };
     let banner = match &app.derived.rebalance_summary {
-        Some(s) if s.in_balance => {
-            Line::from(format!("\u{2713} In balance — strategy {strat} (t to toggle)"))
-        }
+        Some(s) if s.in_balance => Line::from(format!(
+            "\u{2713} In balance — strategy {strat} (t to toggle)"
+        )),
         Some(s) => Line::from(format!(
             "\u{26a0} Out of balance — buys {:.2} / sells {:.2} — strategy {strat} (t to toggle)",
             s.total_buys, s.total_sells
@@ -80,8 +81,11 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
     );
 
     f.render_widget(
-        Paragraph::new(compare_lines)
-            .block(Block::default().borders(Borders::ALL).title(" Current vs Target ")),
+        Paragraph::new(compare_lines).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Current vs Target "),
+        ),
         chunks[1],
     );
 
