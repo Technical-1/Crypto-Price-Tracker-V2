@@ -1,0 +1,6 @@
+[
+  { "Buy": { "timestamp": "2021-01-01T00:00:00Z", "wallet": "coinbase",
+             "asset": "bitcoin", "quantity": "0.5", "unit_price": "30000", "fee": "5" } },
+  { "Income": { "timestamp": "2021-06-01T00:00:00Z", "wallet": "kraken",
+                "asset": "ethereum", "quantity": "1.2", "value": "2400", "source": "Staking" } }
+]
