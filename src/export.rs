@@ -15,9 +15,8 @@ pub fn export_capital_gains_json(rep: &CapitalGainsReport, path: &str) -> Result
 }
 
 pub fn export_capital_gains_csv(rep: &CapitalGainsReport, path: &str) -> Result<(), AppError> {
-    let mut out = String::from(
-        "asset,wallet,acquired,disposed,quantity,proceeds,cost_basis,gain,term\n",
-    );
+    let mut out =
+        String::from("asset,wallet,acquired,disposed,quantity,proceeds,cost_basis,gain,term\n");
     for r in &rep.rows {
         let acquired = r.acquired_at.map(|d| d.to_rfc3339()).unwrap_or_default();
         let term = match r.term {
@@ -61,8 +60,8 @@ pub fn export_holdings_csv(holdings: &[Holding], path: &str) -> Result<(), AppEr
 #[cfg(test)]
 mod tests {
     use super::*;
-    use coinbasis::{CapitalGainsReport, Holding, RealizedGain, Term};
     use chrono::{TimeZone, Utc};
+    use coinbasis::{CapitalGainsReport, Holding, RealizedGain, Term};
     use rust_decimal_macros::dec;
 
     fn cg() -> CapitalGainsReport {
@@ -92,7 +91,8 @@ mod tests {
         let path = dir.join("cg.csv");
         export_capital_gains_csv(&cg(), path.to_str().unwrap()).unwrap();
         let text = std::fs::read_to_string(&path).unwrap();
-        assert!(text.starts_with("asset,wallet,acquired,disposed,quantity,proceeds,cost_basis,gain,term"));
+        assert!(text
+            .starts_with("asset,wallet,acquired,disposed,quantity,proceeds,cost_basis,gain,term"));
         assert!(text.contains("bitcoin"));
         assert!(text.contains("Long"));
     }

@@ -30,7 +30,10 @@ pub struct HoldingValue {
 impl PortfolioModel {
     pub fn new(txs: &[Transaction]) -> Result<Self, AppError> {
         let portfolio = Portfolio::from_transactions(txs)?;
-        Ok(Self { portfolio, txs: txs.to_vec() })
+        Ok(Self {
+            portfolio,
+            txs: txs.to_vec(),
+        })
     }
 
     pub fn holdings(&self, method: CostBasisMethod) -> Result<Vec<Holding>, AppError> {
@@ -49,7 +52,12 @@ impl PortfolioModel {
                 let price = prices.get(&h.asset).copied().unwrap_or(Decimal::ZERO);
                 let current_value = h.quantity * price;
                 let unrealized = current_value - h.cost_basis;
-                HoldingValue { holding: h, price, current_value, unrealized }
+                HoldingValue {
+                    holding: h,
+                    price,
+                    current_value,
+                    unrealized,
+                }
             })
             .collect())
     }
@@ -109,7 +117,9 @@ pub fn estimate_sell_gain(
     let wallet = txs
         .iter()
         .find_map(|t| match t {
-            Transaction::Buy { asset: a, wallet, .. } if a == asset => Some(wallet.clone()),
+            Transaction::Buy {
+                asset: a, wallet, ..
+            } if a == asset => Some(wallet.clone()),
             _ => None,
         })
         .unwrap_or_else(|| "estimate".to_string());
@@ -135,8 +145,8 @@ pub fn estimate_sell_gain(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use coinbasis::{CostBasisMethod, Transaction};
     use chrono::{TimeZone, Utc};
+    use coinbasis::{CostBasisMethod, Transaction};
     use rust_decimal_macros::dec;
     use std::collections::HashMap;
 
@@ -144,18 +154,27 @@ mod tests {
         vec![
             Transaction::Buy {
                 timestamp: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap(),
-                wallet: "coinbase".into(), asset: "bitcoin".into(),
-                quantity: dec!(1), unit_price: dec!(30000), fee: dec!(0),
+                wallet: "coinbase".into(),
+                asset: "bitcoin".into(),
+                quantity: dec!(1),
+                unit_price: dec!(30000),
+                fee: dec!(0),
             },
             Transaction::Buy {
                 timestamp: Utc.with_ymd_and_hms(2022, 1, 1, 0, 0, 0).unwrap(),
-                wallet: "coinbase".into(), asset: "bitcoin".into(),
-                quantity: dec!(1), unit_price: dec!(40000), fee: dec!(0),
+                wallet: "coinbase".into(),
+                asset: "bitcoin".into(),
+                quantity: dec!(1),
+                unit_price: dec!(40000),
+                fee: dec!(0),
             },
             Transaction::Sell {
                 timestamp: Utc.with_ymd_and_hms(2023, 6, 1, 0, 0, 0).unwrap(),
-                wallet: "coinbase".into(), asset: "bitcoin".into(),
-                quantity: dec!(0.5), unit_price: dec!(50000), fee: dec!(0),
+                wallet: "coinbase".into(),
+                asset: "bitcoin".into(),
+                quantity: dec!(0.5),
+                unit_price: dec!(50000),
+                fee: dec!(0),
             },
         ]
     }
@@ -170,7 +189,9 @@ mod tests {
         let m = PortfolioModel::new(&ledger()).unwrap();
         let mut prices = HashMap::new();
         prices.insert("bitcoin".to_string(), dec!(50000));
-        let hv = m.holdings_with_value(CostBasisMethod::Fifo, &prices).unwrap();
+        let hv = m
+            .holdings_with_value(CostBasisMethod::Fifo, &prices)
+            .unwrap();
         let total_qty: rust_decimal::Decimal = hv.iter().map(|h| h.holding.quantity).sum();
         assert_eq!(total_qty, dec!(1.5));
         let h = &hv[0];
@@ -190,9 +211,13 @@ mod tests {
     fn estimate_sell_gain_is_positive_for_appreciated_asset() {
         let txs = ledger();
         let gain = estimate_sell_gain(
-            &txs, "bitcoin", dec!(10000), dec!(50000),
+            &txs,
+            "bitcoin",
+            dec!(10000),
+            dec!(50000),
             Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap(),
-        ).unwrap();
+        )
+        .unwrap();
         assert!(gain > dec!(0));
     }
 }

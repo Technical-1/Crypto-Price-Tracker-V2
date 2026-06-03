@@ -24,8 +24,12 @@ pub enum View {
 
 impl View {
     pub const ALL: [View; 6] = [
-        View::Prices, View::Holdings, View::Valuation,
-        View::Tax, View::Rebalance, View::Performance,
+        View::Prices,
+        View::Holdings,
+        View::Valuation,
+        View::Tax,
+        View::Rebalance,
+        View::Performance,
     ];
 
     pub fn title(self) -> &'static str {
@@ -54,8 +58,13 @@ pub enum SortKey {
 }
 
 impl SortKey {
-    pub const ALL: [SortKey; 5] =
-        [SortKey::Symbol, SortKey::Price, SortKey::Change24h, SortKey::Value, SortKey::Profit];
+    pub const ALL: [SortKey; 5] = [
+        SortKey::Symbol,
+        SortKey::Price,
+        SortKey::Change24h,
+        SortKey::Value,
+        SortKey::Profit,
+    ];
 }
 
 #[derive(Debug, Clone, Default)]
@@ -126,15 +135,20 @@ impl App {
     }
 
     fn price_map(&self) -> HashMap<String, Decimal> {
-        self.prices.as_ref().map(|b| b.price_map()).unwrap_or_default()
+        self.prices
+            .as_ref()
+            .map(|b| b.price_map())
+            .unwrap_or_default()
     }
 
     /// Recompute all derived reports from current method / year / prices.
     pub fn recompute(&mut self) {
         let pm = self.price_map();
 
-        self.derived.holdings =
-            self.model.holdings_with_value(self.method, &pm).unwrap_or_default();
+        self.derived.holdings = self
+            .model
+            .holdings_with_value(self.method, &pm)
+            .unwrap_or_default();
         self.derived.valuation = self.model.valuation(self.method, &pm).ok();
         self.derived.capital_gains = self.model.capital_gains(self.method, self.tax_year).ok();
         self.derived.income = Some(self.model.income(self.tax_year));
@@ -157,8 +171,13 @@ impl App {
                         .map(|av| av.price)
                         .unwrap_or(Decimal::ZERO);
                     a.est_realized_gain = crate::portfolio::estimate_sell_gain(
-                        self.model.transactions(), &a.asset, a.amount_usd, price, now,
-                    ).ok();
+                        self.model.transactions(),
+                        &a.asset,
+                        a.amount_usd,
+                        price,
+                        now,
+                    )
+                    .ok();
                 }
             }
             self.derived.rebalance_summary = Some(rebalance::summarize(&actions));
@@ -248,22 +267,28 @@ impl App {
 }
 
 fn report_timestamp(app: &App) -> chrono::DateTime<chrono::Utc> {
-    app.prices.as_ref().map(|b| b.fetched_at).unwrap_or_else(chrono::Utc::now)
+    app.prices
+        .as_ref()
+        .map(|b| b.fetched_at)
+        .unwrap_or_else(chrono::Utc::now)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::config::Config;
-    use coinbasis::{CostBasisMethod, Transaction};
     use chrono::{TimeZone, Utc};
+    use coinbasis::{CostBasisMethod, Transaction};
     use rust_decimal_macros::dec;
 
     fn app() -> App {
         let txs = vec![Transaction::Buy {
             timestamp: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap(),
-            wallet: "coinbase".into(), asset: "bitcoin".into(),
-            quantity: dec!(1), unit_price: dec!(30000), fee: dec!(0),
+            wallet: "coinbase".into(),
+            asset: "bitcoin".into(),
+            quantity: dec!(1),
+            unit_price: dec!(30000),
+            fee: dec!(0),
         }];
         App::new(Config::example(), &txs).unwrap()
     }

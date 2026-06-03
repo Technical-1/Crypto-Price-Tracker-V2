@@ -14,12 +14,20 @@ async fn end_to_end_recompute_under_method_and_prices() {
     let txs = vec![
         Transaction::Buy {
             timestamp: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap(),
-            wallet: "coinbase".into(), asset: "bitcoin".into(),
-            quantity: dec!(1), unit_price: dec!(30000), fee: dec!(0) },
+            wallet: "coinbase".into(),
+            asset: "bitcoin".into(),
+            quantity: dec!(1),
+            unit_price: dec!(30000),
+            fee: dec!(0),
+        },
         Transaction::Buy {
             timestamp: Utc.with_ymd_and_hms(2022, 1, 1, 0, 0, 0).unwrap(),
-            wallet: "coinbase".into(), asset: "bitcoin".into(),
-            quantity: dec!(1), unit_price: dec!(40000), fee: dec!(0) },
+            wallet: "coinbase".into(),
+            asset: "bitcoin".into(),
+            quantity: dec!(1),
+            unit_price: dec!(40000),
+            fee: dec!(0),
+        },
     ];
     let mut app = App::new(Config::example(), &txs).unwrap();
 

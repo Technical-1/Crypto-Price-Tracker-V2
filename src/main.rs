@@ -66,7 +66,10 @@ fn restore_terminal(terminal: &mut Tui) -> Result<()> {
 async fn main() -> Result<()> {
     let args = Args::parse();
     let config = Config::load(&args.config).context("loading config")?;
-    let ledger_path = args.ledger.clone().unwrap_or_else(|| config.ledger_path.clone());
+    let ledger_path = args
+        .ledger
+        .clone()
+        .unwrap_or_else(|| config.ledger_path.clone());
     let txs = load_ledger(&ledger_path).context("loading ledger")?;
     let asset_ids: Vec<String> = ledger::assets(&txs).into_iter().collect();
 
@@ -109,8 +112,20 @@ async fn main() -> Result<()> {
         spawn_fetch(tx.clone());
     }
 
-    let res = run(&mut app, &mut terminal, &mut events, &mut rx, &tx, &cache, &history_path,
-                  config.refresh_seconds, args.offline, &mut tick, spawn_fetch).await;
+    let res = run(
+        &mut app,
+        &mut terminal,
+        &mut events,
+        &mut rx,
+        &tx,
+        &cache,
+        &history_path,
+        config.refresh_seconds,
+        args.offline,
+        &mut tick,
+        spawn_fetch,
+    )
+    .await;
 
     restore_terminal(&mut terminal)?;
     res
@@ -187,7 +202,12 @@ fn do_export(app: &mut App) {
             }
         }
         View::Holdings => {
-            let holdings: Vec<_> = app.derived.holdings.iter().map(|h| h.holding.clone()).collect();
+            let holdings: Vec<_> = app
+                .derived
+                .holdings
+                .iter()
+                .map(|h| h.holding.clone())
+                .collect();
             let path = format!("holdings-{}.csv", stamp);
             match export::export_holdings_csv(&holdings, &path) {
                 Ok(()) => app.status.message = format!("exported {path}"),

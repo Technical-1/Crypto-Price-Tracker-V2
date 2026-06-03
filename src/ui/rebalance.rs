@@ -20,9 +20,9 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
         Strategy::Full => "Full",
     };
     let banner = match &app.derived.rebalance_summary {
-        Some(s) if s.in_balance => Line::from(format!(
-            "✓ In balance — strategy {strat} (t to toggle)"
-        )),
+        Some(s) if s.in_balance => {
+            Line::from(format!("✓ In balance — strategy {strat} (t to toggle)"))
+        }
         Some(s) => Line::from(format!(
             "⚠ Out of balance — buys {:.2} / sells {:.2} — strategy {strat} (t to toggle)",
             s.total_buys, s.total_sells
@@ -77,13 +77,18 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
         .collect();
 
     let widths = [
-        Constraint::Length(6), Constraint::Length(8), Constraint::Length(14),
-        Constraint::Length(9), Constraint::Length(18),
+        Constraint::Length(6),
+        Constraint::Length(8),
+        Constraint::Length(14),
+        Constraint::Length(9),
+        Constraint::Length(18),
     ];
     f.render_widget(
-        Table::new(rows, widths)
-            .header(header)
-            .block(Block::default().borders(Borders::ALL).title(" Suggested trades (estimates) ")),
+        Table::new(rows, widths).header(header).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Suggested trades (estimates) "),
+        ),
         chunks[1],
     );
 }
@@ -93,8 +98,8 @@ mod tests {
     use crate::app::App;
     use crate::config::Config;
     use crate::prices::{PriceBook, Quote};
-    use coinbasis::Transaction;
     use chrono::{TimeZone, Utc};
+    use coinbasis::Transaction;
     use ratatui::backend::TestBackend;
     use ratatui::Terminal;
     use rust_decimal_macros::dec;
@@ -103,23 +108,46 @@ mod tests {
     fn app() -> App {
         let txs = vec![Transaction::Buy {
             timestamp: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap(),
-            wallet: "coinbase".into(), asset: "bitcoin".into(),
-            quantity: dec!(1), unit_price: dec!(30000), fee: dec!(0),
+            wallet: "coinbase".into(),
+            asset: "bitcoin".into(),
+            quantity: dec!(1),
+            unit_price: dec!(30000),
+            fee: dec!(0),
         }];
         let mut a = App::new(Config::example(), &txs).unwrap();
         let mut q = HashMap::new();
-        q.insert("bitcoin".into(), Quote { price: dec!(50000), change_24h: dec!(0),
-            change_7d: None, market_cap: None, volume_24h: None, ath: None });
-        a.set_prices(PriceBook { quotes: q, fetched_at: Utc::now(),
-            sparklines: HashMap::new(), stale: false });
+        q.insert(
+            "bitcoin".into(),
+            Quote {
+                price: dec!(50000),
+                change_24h: dec!(0),
+                change_7d: None,
+                market_cap: None,
+                volume_24h: None,
+                ath: None,
+            },
+        );
+        a.set_prices(PriceBook {
+            quotes: q,
+            fetched_at: Utc::now(),
+            sparklines: HashMap::new(),
+            stale: false,
+        });
         a
     }
 
     #[test]
     fn shows_action_columns_and_banner() {
         let mut t = Terminal::new(TestBackend::new(140, 26)).unwrap();
-        t.draw(|f| crate::ui::rebalance::render(f, f.area(), &app())).unwrap();
-        let s: String = t.backend().buffer().content().iter().map(|c| c.symbol()).collect();
+        t.draw(|f| crate::ui::rebalance::render(f, f.area(), &app()))
+            .unwrap();
+        let s: String = t
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|c| c.symbol())
+            .collect();
         assert!(s.contains("SIDE"));
         assert!(s.contains("AMOUNT"));
         assert!(s.contains("DRIFT"));

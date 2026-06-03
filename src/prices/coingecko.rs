@@ -20,7 +20,9 @@ impl CoinGeckoSource {
     /// No API key (public/demo endpoint). For a demo key, swap in
     /// `CoinGeckoClient::new_with_demo_api_key(&key)`.
     pub fn new() -> Self {
-        Self { client: CoinGeckoClient::new(coingecko::COINGECKO_API_DEMO_URL) }
+        Self {
+            client: CoinGeckoClient::new(coingecko::COINGECKO_API_DEMO_URL),
+        }
     }
 }
 
@@ -31,7 +33,8 @@ impl Default for CoinGeckoSource {
 }
 
 pub(crate) fn to_decimal(v: Option<f64>) -> Decimal {
-    v.and_then(Decimal::from_f64_retain).unwrap_or(Decimal::ZERO)
+    v.and_then(Decimal::from_f64_retain)
+        .unwrap_or(Decimal::ZERO)
 }
 
 pub(crate) fn to_opt_decimal(v: Option<f64>) -> Option<Decimal> {
@@ -58,7 +61,10 @@ impl PriceSource for CoinGeckoSource {
                 ids.len() as i64,
                 1,
                 true,
-                &[PriceChangePercentage::TwentyFourHours, PriceChangePercentage::SevenDays],
+                &[
+                    PriceChangePercentage::TwentyFourHours,
+                    PriceChangePercentage::SevenDays,
+                ],
             )
             .await
             .map_err(|e| AppError::Price(e.to_string()))?;
@@ -82,7 +88,12 @@ impl PriceSource for CoinGeckoSource {
             }
         }
 
-        Ok(PriceBook { quotes, fetched_at: Utc::now(), sparklines, stale: false })
+        Ok(PriceBook {
+            quotes,
+            fetched_at: Utc::now(),
+            sparklines,
+            stale: false,
+        })
     }
 }
 

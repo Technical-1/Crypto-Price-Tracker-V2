@@ -122,7 +122,11 @@ pub fn summarize(actions: &[RebalanceAction]) -> RebalanceSummary {
         .filter(|a| a.side == RebalanceSide::Sell)
         .map(|a| a.amount_usd)
         .sum();
-    RebalanceSummary { total_buys, total_sells, in_balance: actions.is_empty() }
+    RebalanceSummary {
+        total_buys,
+        total_sells,
+        in_balance: actions.is_empty(),
+    }
 }
 
 #[cfg(test)]
@@ -135,13 +139,29 @@ mod tests {
     fn report() -> PortfolioReport {
         PortfolioReport {
             assets: vec![
-                AssetValuation { asset: "bitcoin".into(), quantity: dec!(1), cost_basis: dec!(5000),
-                    price: dec!(7000), market_value: dec!(7000), unrealized: dec!(2000), allocation: dec!(0.7) },
-                AssetValuation { asset: "ethereum".into(), quantity: dec!(1), cost_basis: dec!(2000),
-                    price: dec!(3000), market_value: dec!(3000), unrealized: dec!(1000), allocation: dec!(0.3) },
+                AssetValuation {
+                    asset: "bitcoin".into(),
+                    quantity: dec!(1),
+                    cost_basis: dec!(5000),
+                    price: dec!(7000),
+                    market_value: dec!(7000),
+                    unrealized: dec!(2000),
+                    allocation: dec!(0.7),
+                },
+                AssetValuation {
+                    asset: "ethereum".into(),
+                    quantity: dec!(1),
+                    cost_basis: dec!(2000),
+                    price: dec!(3000),
+                    market_value: dec!(3000),
+                    unrealized: dec!(1000),
+                    allocation: dec!(0.3),
+                },
             ],
-            total_cost: dec!(7000), total_value: dec!(10000),
-            total_unrealized: dec!(3000), total_return: dec!(0.428),
+            total_cost: dec!(7000),
+            total_value: dec!(10000),
+            total_unrealized: dec!(3000),
+            total_return: dec!(0.428),
             missing_prices: vec![],
         }
     }

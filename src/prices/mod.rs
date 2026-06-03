@@ -35,7 +35,10 @@ pub struct PriceBook {
 impl PriceBook {
     /// asset id -> price, for `coinbasis::Portfolio::valuation`.
     pub fn price_map(&self) -> HashMap<String, Decimal> {
-        self.quotes.iter().map(|(k, q)| (k.clone(), q.price)).collect()
+        self.quotes
+            .iter()
+            .map(|(k, q)| (k.clone(), q.price))
+            .collect()
     }
 }
 
@@ -57,10 +60,21 @@ mod tests {
         let mut quotes = HashMap::new();
         quotes.insert(
             "bitcoin".to_string(),
-            Quote { price: dec!(50000), change_24h: dec!(1.5), change_7d: Some(dec!(3.0)),
-                    market_cap: None, volume_24h: None, ath: None },
+            Quote {
+                price: dec!(50000),
+                change_24h: dec!(1.5),
+                change_7d: Some(dec!(3.0)),
+                market_cap: None,
+                volume_24h: None,
+                ath: None,
+            },
         );
-        let book = PriceBook { quotes, fetched_at: Utc::now(), sparklines: HashMap::new(), stale: false };
+        let book = PriceBook {
+            quotes,
+            fetched_at: Utc::now(),
+            sparklines: HashMap::new(),
+            stale: false,
+        };
         let pm = book.price_map();
         assert_eq!(pm.get("bitcoin"), Some(&dec!(50000)));
     }

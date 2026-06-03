@@ -107,7 +107,10 @@ impl Config {
             default_method: CostBasisMethod::Fifo,
             display_currency: "usd".into(),
             refresh_seconds: 60,
-            tax: TaxConfig { short_term_rate: 0.24, long_term_rate: 0.15 },
+            tax: TaxConfig {
+                short_term_rate: 0.24,
+                long_term_rate: 0.15,
+            },
             targets,
             rebalance: RebalanceConfig {
                 band: dec!(0.05),

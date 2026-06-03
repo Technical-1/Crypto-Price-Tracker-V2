@@ -18,7 +18,11 @@ use crate::app::{App, View};
 pub fn draw(f: &mut Frame, app: &App) {
     let chunks = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(3), Constraint::Min(1), Constraint::Length(1)])
+        .constraints([
+            Constraint::Length(3),
+            Constraint::Min(1),
+            Constraint::Length(1),
+        ])
         .split(f.area());
 
     draw_tab_bar(f, chunks[0], app);
@@ -42,7 +46,11 @@ fn draw_tab_bar(f: &mut Frame, area: Rect, app: &App) {
     let tabs = Tabs::new(titles)
         .block(Block::default().borders(Borders::ALL).title(title))
         .select(selected)
-        .highlight_style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
+        .highlight_style(
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD),
+        );
     f.render_widget(tabs, area);
 }
 
@@ -73,7 +81,10 @@ fn draw_status_bar(f: &mut Frame, area: Rect, app: &App) {
     if !app.status.message.is_empty() {
         spans.push(Span::raw(format!(" {} ", app.status.message)));
     }
-    spans.push(Span::styled(" ? help ", Style::default().fg(Color::DarkGray)));
+    spans.push(Span::styled(
+        " ? help ",
+        Style::default().fg(Color::DarkGray),
+    ));
     f.render_widget(Paragraph::new(Line::from(spans)), area);
 }
 
@@ -109,8 +120,8 @@ mod tests {
     use super::*;
     use crate::app::App;
     use crate::config::Config;
-    use coinbasis::Transaction;
     use chrono::{TimeZone, Utc};
+    use coinbasis::Transaction;
     use ratatui::backend::TestBackend;
     use ratatui::Terminal;
     use rust_decimal_macros::dec;
@@ -118,8 +129,11 @@ mod tests {
     fn app() -> App {
         let txs = vec![Transaction::Buy {
             timestamp: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap(),
-            wallet: "coinbase".into(), asset: "bitcoin".into(),
-            quantity: dec!(1), unit_price: dec!(30000), fee: dec!(0),
+            wallet: "coinbase".into(),
+            asset: "bitcoin".into(),
+            quantity: dec!(1),
+            unit_price: dec!(30000),
+            fee: dec!(0),
         }];
         App::new(Config::example(), &txs).unwrap()
     }

@@ -8,6 +8,20 @@ use rust_decimal::Decimal;
 
 use crate::app::{App, SortKey};
 
+/// One formatted price row: (symbol, price, change_24h, change_7d, held, cost, value, profit, profit_pct, alloc).
+type PriceRow = (
+    String,
+    Decimal,
+    Decimal,
+    Option<Decimal>,
+    Decimal,
+    Decimal,
+    Decimal,
+    Decimal,
+    Decimal,
+    Decimal,
+);
+
 fn color_for(v: Decimal) -> Style {
     if v >= Decimal::ZERO {
         Style::default().fg(Color::Green)
@@ -18,12 +32,14 @@ fn color_for(v: Decimal) -> Style {
 
 pub fn render(f: &mut Frame, area: Rect, app: &App) {
     let header = Row::new(
-        ["SYMBOL", "PRICE", "24H%", "7D%", "HELD", "COST", "VALUE", "PROFIT", "PROFIT%", "ALLOC"]
-            .into_iter()
-            .map(|h| Cell::from(h).style(Style::default().fg(Color::Cyan))),
+        [
+            "SYMBOL", "PRICE", "24H%", "7D%", "HELD", "COST", "VALUE", "PROFIT", "PROFIT%", "ALLOC",
+        ]
+        .into_iter()
+        .map(|h| Cell::from(h).style(Style::default().fg(Color::Cyan))),
     );
 
-    let mut rows: Vec<(String, Decimal, Decimal, Option<Decimal>, Decimal, Decimal, Decimal, Decimal, Decimal, Decimal)> = Vec::new();
+    let mut rows: Vec<PriceRow> = Vec::new();
     if let Some(report) = &app.derived.valuation {
         for av in &report.assets {
             let quote = app.prices.as_ref().and_then(|b| b.quotes.get(&av.asset));
@@ -37,8 +53,15 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
             };
             rows.push((
                 app.config.symbol(&av.asset),
-                av.price, change_24h, change_7d, av.quantity, av.cost_basis,
-                av.market_value, profit, profit_pct, av.allocation * Decimal::from(100),
+                av.price,
+                change_24h,
+                change_7d,
+                av.quantity,
+                av.cost_basis,
+                av.market_value,
+                profit,
+                profit_pct,
+                av.allocation * Decimal::from(100),
             ));
         }
     }
@@ -51,7 +74,11 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
             SortKey::Value => a.6.cmp(&b.6),
             SortKey::Profit => a.7.cmp(&b.7),
         };
-        if app.sort_desc { ord.reverse() } else { ord }
+        if app.sort_desc {
+            ord.reverse()
+        } else {
+            ord
+        }
     });
 
     let table_rows: Vec<Row> = rows
@@ -61,7 +88,10 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
                 Cell::from(r.0.clone()),
                 Cell::from(format!("{:.2}", r.1)),
                 Cell::from(format!("{:+.2}", r.2)).style(color_for(r.2)),
-                Cell::from(r.3.map(|v| format!("{:+.2}", v)).unwrap_or_else(|| "\u{2014}".into())),
+                Cell::from(
+                    r.3.map(|v| format!("{:+.2}", v))
+                        .unwrap_or_else(|| "\u{2014}".into()),
+                ),
                 Cell::from(format!("{}", r.4)),
                 Cell::from(format!("{:.2}", r.5)),
                 Cell::from(format!("{:.2}", r.6)),
@@ -73,14 +103,24 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
         .collect();
 
     let widths = [
-        Constraint::Length(8), Constraint::Length(12), Constraint::Length(8),
-        Constraint::Length(8), Constraint::Length(10), Constraint::Length(12),
-        Constraint::Length(12), Constraint::Length(12), Constraint::Length(9),
+        Constraint::Length(8),
+        Constraint::Length(12),
+        Constraint::Length(8),
+        Constraint::Length(8),
+        Constraint::Length(10),
+        Constraint::Length(12),
+        Constraint::Length(12),
+        Constraint::Length(12),
+        Constraint::Length(9),
         Constraint::Length(7),
     ];
     let table = Table::new(table_rows, widths)
         .header(header)
-        .block(Block::default().borders(Borders::ALL).title(" Prices / P&L "))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Prices / P&L "),
+        )
         .row_highlight_style(Style::default().bg(Color::DarkGray));
     f.render_widget(table, area);
 }
@@ -90,8 +130,8 @@ mod tests {
     use crate::app::App;
     use crate::config::Config;
     use crate::prices::{PriceBook, Quote};
-    use coinbasis::Transaction;
     use chrono::{TimeZone, Utc};
+    use coinbasis::Transaction;
     use ratatui::backend::TestBackend;
     use ratatui::Terminal;
     use rust_decimal_macros::dec;
@@ -100,25 +140,44 @@ mod tests {
     fn app_with_prices() -> App {
         let txs = vec![Transaction::Buy {
             timestamp: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap(),
-            wallet: "coinbase".into(), asset: "bitcoin".into(),
-            quantity: dec!(1), unit_price: dec!(30000), fee: dec!(0),
+            wallet: "coinbase".into(),
+            asset: "bitcoin".into(),
+            quantity: dec!(1),
+            unit_price: dec!(30000),
+            fee: dec!(0),
         }];
         let mut app = App::new(Config::example(), &txs).unwrap();
         let mut quotes = HashMap::new();
-        quotes.insert("bitcoin".into(), Quote {
-            price: dec!(50000), change_24h: dec!(2.5), change_7d: Some(dec!(5.0)),
-            market_cap: Some(dec!(1000000000000)), volume_24h: Some(dec!(20000000000)),
-            ath: Some(dec!(69000)),
-        });
+        quotes.insert(
+            "bitcoin".into(),
+            Quote {
+                price: dec!(50000),
+                change_24h: dec!(2.5),
+                change_7d: Some(dec!(5.0)),
+                market_cap: Some(dec!(1000000000000)),
+                volume_24h: Some(dec!(20000000000)),
+                ath: Some(dec!(69000)),
+            },
+        );
         app.set_prices(PriceBook {
-            quotes, fetched_at: Utc::now(), sparklines: HashMap::new(), stale: false });
+            quotes,
+            fetched_at: Utc::now(),
+            sparklines: HashMap::new(),
+            stale: false,
+        });
         app
     }
 
     fn rendered(app: &App) -> String {
         let mut t = Terminal::new(TestBackend::new(140, 30)).unwrap();
-        t.draw(|f| crate::ui::prices::render(f, f.area(), app)).unwrap();
-        t.backend().buffer().content().iter().map(|c| c.symbol()).collect()
+        t.draw(|f| crate::ui::prices::render(f, f.area(), app))
+            .unwrap();
+        t.backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|c| c.symbol())
+            .collect()
     }
 
     #[test]

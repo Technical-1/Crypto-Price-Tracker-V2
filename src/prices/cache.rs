@@ -15,7 +15,10 @@ pub struct PriceCache {
 
 impl PriceCache {
     pub fn new(dir: PathBuf, ttl_seconds: u64) -> Self {
-        Self { dir, ttl_seconds: ttl_seconds as i64 }
+        Self {
+            dir,
+            ttl_seconds: ttl_seconds as i64,
+        }
     }
 
     pub fn path(&self) -> PathBuf {
@@ -31,8 +34,8 @@ impl PriceCache {
     fn read(&self) -> Result<Option<PriceBook>, AppError> {
         match std::fs::read_to_string(self.path()) {
             Ok(text) => {
-                let book = serde_json::from_str(&text)
-                    .map_err(|e| AppError::Cache(e.to_string()))?;
+                let book =
+                    serde_json::from_str(&text).map_err(|e| AppError::Cache(e.to_string()))?;
                 Ok(Some(book))
             }
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
@@ -42,8 +45,12 @@ impl PriceCache {
 
     /// Returns the cached book only if within TTL.
     pub fn load_fresh(&self) -> Result<Option<PriceBook>, AppError> {
-        let Some(book) = self.read()? else { return Ok(None) };
-        let age = Utc::now().signed_duration_since(book.fetched_at).num_seconds();
+        let Some(book) = self.read()? else {
+            return Ok(None);
+        };
+        let age = Utc::now()
+            .signed_duration_since(book.fetched_at)
+            .num_seconds();
         if age < self.ttl_seconds {
             Ok(Some(book))
         } else {
@@ -53,7 +60,9 @@ impl PriceCache {
 
     /// Returns the cached book regardless of age, marked `stale`.
     pub fn load_last_good(&self) -> Result<Option<PriceBook>, AppError> {
-        let Some(mut book) = self.read()? else { return Ok(None) };
+        let Some(mut book) = self.read()? else {
+            return Ok(None);
+        };
         book.stale = true;
         Ok(Some(book))
     }
@@ -69,10 +78,23 @@ mod tests {
 
     fn book() -> PriceBook {
         let mut quotes = HashMap::new();
-        quotes.insert("bitcoin".into(), Quote {
-            price: dec!(50000), change_24h: dec!(1.0), change_7d: None,
-            market_cap: None, volume_24h: None, ath: None });
-        PriceBook { quotes, fetched_at: Utc::now(), sparklines: HashMap::new(), stale: false }
+        quotes.insert(
+            "bitcoin".into(),
+            Quote {
+                price: dec!(50000),
+                change_24h: dec!(1.0),
+                change_7d: None,
+                market_cap: None,
+                volume_24h: None,
+                ath: None,
+            },
+        );
+        PriceBook {
+            quotes,
+            fetched_at: Utc::now(),
+            sparklines: HashMap::new(),
+            stale: false,
+        }
     }
 
     #[test]

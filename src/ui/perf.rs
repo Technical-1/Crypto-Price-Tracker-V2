@@ -13,8 +13,14 @@ use crate::app::App;
 pub fn render(f: &mut Frame, area: Rect, app: &App) {
     if app.history.len() < 2 {
         f.render_widget(
-            Paragraph::new("Performance: not enough history yet — values are recorded as prices refresh.")
-                .block(Block::default().borders(Borders::ALL).title(" Performance ")),
+            Paragraph::new(
+                "Performance: not enough history yet — values are recorded as prices refresh.",
+            )
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .title(" Performance "),
+            ),
             area,
         );
         return;
@@ -42,7 +48,11 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
         .style(Style::default().fg(Color::Cyan))
         .data(&points)];
     let chart = Chart::new(datasets)
-        .block(Block::default().borders(Borders::ALL).title(" Value History "))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Value History "),
+        )
         .x_axis(Axis::default().bounds([0.0, last_x]))
         .y_axis(
             Axis::default()
@@ -70,8 +80,8 @@ mod tests {
     use crate::app::App;
     use crate::config::Config;
     use crate::perf::Snapshot;
-    use coinbasis::Transaction;
     use chrono::{TimeZone, Utc};
+    use coinbasis::Transaction;
     use ratatui::backend::TestBackend;
     use ratatui::Terminal;
     use rust_decimal_macros::dec;
@@ -79,13 +89,18 @@ mod tests {
     fn app_with_history(points: usize) -> App {
         let txs = vec![Transaction::Buy {
             timestamp: Utc.with_ymd_and_hms(2021, 1, 1, 0, 0, 0).unwrap(),
-            wallet: "coinbase".into(), asset: "bitcoin".into(),
-            quantity: dec!(1), unit_price: dec!(30000), fee: dec!(0),
+            wallet: "coinbase".into(),
+            asset: "bitcoin".into(),
+            quantity: dec!(1),
+            unit_price: dec!(30000),
+            fee: dec!(0),
         }];
         let mut a = App::new(Config::example(), &txs).unwrap();
         a.history = (0..points)
             .map(|i| Snapshot {
-                at: Utc.with_ymd_and_hms(2026, 1, 1 + i as u32, 0, 0, 0).unwrap(),
+                at: Utc
+                    .with_ymd_and_hms(2026, 1, 1 + i as u32, 0, 0, 0)
+                    .unwrap(),
                 total_value: dec!(100) + rust_decimal::Decimal::from(i),
             })
             .collect();
@@ -95,16 +110,30 @@ mod tests {
     #[test]
     fn short_history_shows_need_more_message() {
         let mut t = Terminal::new(TestBackend::new(120, 24)).unwrap();
-        t.draw(|f| crate::ui::perf::render(f, f.area(), &app_with_history(1))).unwrap();
-        let s: String = t.backend().buffer().content().iter().map(|c| c.symbol()).collect();
+        t.draw(|f| crate::ui::perf::render(f, f.area(), &app_with_history(1)))
+            .unwrap();
+        let s: String = t
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|c| c.symbol())
+            .collect();
         assert!(s.contains("not enough history"));
     }
 
     #[test]
     fn longer_history_shows_metrics_labels() {
         let mut t = Terminal::new(TestBackend::new(120, 24)).unwrap();
-        t.draw(|f| crate::ui::perf::render(f, f.area(), &app_with_history(8))).unwrap();
-        let s: String = t.backend().buffer().content().iter().map(|c| c.symbol()).collect();
+        t.draw(|f| crate::ui::perf::render(f, f.area(), &app_with_history(8)))
+            .unwrap();
+        let s: String = t
+            .backend()
+            .buffer()
+            .content()
+            .iter()
+            .map(|c| c.symbol())
+            .collect();
         assert!(s.contains("Volatility"));
         assert!(s.contains("Max Drawdown"));
     }

@@ -44,7 +44,10 @@ pub fn record_snapshot(
             return Ok(());
         }
     }
-    hist.push(Snapshot { at: now, total_value });
+    hist.push(Snapshot {
+        at: now,
+        total_value,
+    });
     let text = serde_json::to_string_pretty(&hist).map_err(|e| AppError::Cache(e.to_string()))?;
     std::fs::write(path, text).map_err(|e| AppError::Cache(e.to_string()))
 }
@@ -72,7 +75,10 @@ mod tests {
 
     #[test]
     fn metrics_on_short_series_are_none_but_returns_present() {
-        let snaps = vec![Snapshot { at: Utc::now(), total_value: dec!(100) }];
+        let snaps = vec![Snapshot {
+            at: Utc::now(),
+            total_value: dec!(100),
+        }];
         let m = metrics(&snaps);
         assert!(m.volatility.is_none());
         assert!(m.cumulative_return.is_none());
@@ -84,7 +90,9 @@ mod tests {
             .iter()
             .enumerate()
             .map(|(i, v)| Snapshot {
-                at: Utc.with_ymd_and_hms(2026, 1, 1 + i as u32, 0, 0, 0).unwrap(),
+                at: Utc
+                    .with_ymd_and_hms(2026, 1, 1 + i as u32, 0, 0, 0)
+                    .unwrap(),
                 total_value: rust_decimal::Decimal::from_f64_retain(*v).unwrap(),
             })
             .collect();

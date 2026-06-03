@@ -21,7 +21,14 @@ impl MockSource {
     pub fn set(&mut self, asset: &str, price: Decimal, change_24h: Decimal) {
         self.quotes.insert(
             asset.to_string(),
-            Quote { price, change_24h, change_7d: None, market_cap: None, volume_24h: None, ath: None },
+            Quote {
+                price,
+                change_24h,
+                change_7d: None,
+                market_cap: None,
+                volume_24h: None,
+                ath: None,
+            },
         );
     }
 }

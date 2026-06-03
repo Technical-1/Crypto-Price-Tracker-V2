@@ -42,7 +42,11 @@ pub fn assets(txs: &[Transaction]) -> BTreeSet<String> {
             | Transaction::GiftReceived { asset, .. } => {
                 set.insert(asset.clone());
             }
-            Transaction::Trade { from_asset, to_asset, .. } => {
+            Transaction::Trade {
+                from_asset,
+                to_asset,
+                ..
+            } => {
                 set.insert(from_asset.clone());
                 set.insert(to_asset.clone());
             }
