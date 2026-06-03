@@ -94,7 +94,7 @@ async fn main() -> Result<()> {
 
     let (tx, mut rx) = mpsc::channel::<Result<PriceBook, String>>(4);
     let mut events = EventStream::new();
-    let mut tick = tokio::time::interval(Duration::from_secs(config.refresh_seconds.max(1)));
+    let mut tick = tokio::time::interval(Duration::from_secs(1));
 
     let spawn_fetch = |tx: mpsc::Sender<Result<PriceBook, String>>| {
         let ids = asset_ids.clone();
@@ -144,6 +144,9 @@ async fn run(
     tick: &mut tokio::time::Interval,
     spawn_fetch: impl Fn(mpsc::Sender<Result<PriceBook, String>>),
 ) -> Result<()> {
+    // Countdown (in seconds) to the next automatic refresh; the 1s tick drives it.
+    let mut secs_left = refresh_seconds.max(1);
+    app.seconds_to_refresh = secs_left;
     loop {
         terminal.draw(|f| ui::draw(f, app))?;
         if app.should_quit {
@@ -168,8 +171,14 @@ async fn run(
             }
             _ = tick.tick() => {
                 if !offline {
-                    app.loading = true;
-                    spawn_fetch(tx.clone());
+                    if secs_left == 0 {
+                        app.loading = true;
+                        spawn_fetch(tx.clone());
+                        secs_left = refresh_seconds.max(1);
+                    } else {
+                        secs_left -= 1;
+                    }
+                    app.seconds_to_refresh = secs_left;
                 }
             }
             Some(result) = rx.recv() => {

@@ -101,6 +101,8 @@ pub struct App {
     pub show_help: bool,
     pub should_quit: bool,
     pub history: Vec<crate::perf::Snapshot>,
+    /// Seconds remaining until the next automatic price refresh (driven by the run loop).
+    pub seconds_to_refresh: u64,
 }
 
 impl App {
@@ -108,6 +110,7 @@ impl App {
         let model = PortfolioModel::new(txs)?;
         let method = config.default_method;
         let strategy = config.rebalance.strategy;
+        let refresh = config.refresh_seconds;
         let mut app = App {
             method,
             view: View::Prices,
@@ -124,6 +127,7 @@ impl App {
             show_help: false,
             should_quit: false,
             history: Vec::new(),
+            seconds_to_refresh: refresh,
             config,
             model,
         };

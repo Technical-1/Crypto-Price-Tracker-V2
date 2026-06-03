@@ -37,12 +37,12 @@ pub fn draw(f: &mut Frame, app: &App) {
 fn draw_tab_bar(f: &mut Frame, area: Rect, app: &App) {
     let titles: Vec<Line> = View::ALL.iter().map(|v| Line::from(v.title())).collect();
     let selected = View::ALL.iter().position(|&v| v == app.view).unwrap();
-    let countdown = app
-        .prices
-        .as_ref()
-        .map(|_| format!("{}s", app.config.refresh_seconds))
-        .unwrap_or_else(|| "—".into());
-    let title = format!(" {} · refresh {} ", app.method_label(), countdown);
+    let countdown = if app.prices.is_some() {
+        format!("{}s", app.seconds_to_refresh)
+    } else {
+        "—".into()
+    };
+    let title = format!(" {} · next {} ", app.method_label(), countdown);
     let tabs = Tabs::new(titles)
         .block(Block::default().borders(Borders::ALL).title(title))
         .select(selected)
