@@ -1,0 +1,27 @@
+[package]
+name = "crypto-price-tracker-v2"
+version = "0.1.0"
+edition = "2021"
+description = "A terminal UI for tracking a crypto portfolio: prices, cost basis, tax, rebalancing, and performance."
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+coinbasis = { version = "0.1", features = ["serde"] }
+coingecko = "1.1"
+ratatui = "0.29"
+crossterm = { version = "0.28", features = ["event-stream"] }
+tokio = { version = "1.36", features = ["rt-multi-thread", "macros", "time", "sync"] }
+rust_decimal = { version = "1", features = ["serde"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1"
+thiserror = "1"
+clap = { version = "4", features = ["derive"] }
+reqwest = "0.12"
+
+[dev-dependencies]
+rust_decimal_macros = "1"
+
+[profile.release]
+lto = true
