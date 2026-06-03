@@ -1,6 +1,7 @@
 mod config;
 mod error;
 mod ledger;
+mod portfolio;
 mod prices;
 mod rebalance;
 
