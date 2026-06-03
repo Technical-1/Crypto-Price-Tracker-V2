@@ -8,6 +8,7 @@ mod perf;
 mod portfolio;
 mod prices;
 mod rebalance;
+mod ui;
 
 use std::io::{self, Stdout};
 use std::panic;
