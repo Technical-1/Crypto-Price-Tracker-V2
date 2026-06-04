@@ -36,6 +36,8 @@ struct Args {
     ledger: Option<String>,
     #[arg(long)]
     offline: bool,
+    #[arg(long)]
+    import: Option<String>,
 }
 
 fn install_panic_hook() {
@@ -70,6 +72,13 @@ async fn main() -> Result<()> {
         .ledger
         .clone()
         .unwrap_or_else(|| config.ledger_path.clone());
+
+    if let Some(csv) = args.import.as_deref() {
+        let (added, skipped) = ledger::import_csv(csv, &ledger_path).context("importing CSV")?;
+        println!("imported {added}, skipped {skipped} (ledger: {ledger_path})");
+        return Ok(());
+    }
+
     let txs = load_ledger(&ledger_path).context("loading ledger")?;
     let asset_ids: Vec<String> = ledger::assets(&txs).into_iter().collect();
 

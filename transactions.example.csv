@@ -1,0 +1,4 @@
+date,coin,action,quantity,price_usd,fee_usd,wallet
+2021-01-01,bitcoin,buy,0.5,30000,5,coinbase
+2021-06-01,ethereum,buy,2,2000,3,coinbase
+2024-02-01,bitcoin,sell,0.2,50000,4,coinbase
