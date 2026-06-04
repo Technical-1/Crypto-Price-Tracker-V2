@@ -25,6 +25,12 @@ pub struct Config {
     pub cache: CacheConfig,
     #[serde(default)]
     pub coingecko: CoinGeckoConfig,
+    #[serde(default = "default_history_days")]
+    pub history_days: u32,
+}
+
+fn default_history_days() -> u32 {
+    90
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -135,6 +141,7 @@ impl Config {
                 dir: "~/.cache/crypto-price-tracker-v2".into(),
             },
             coingecko: CoinGeckoConfig::default(),
+            history_days: 90,
         }
     }
 

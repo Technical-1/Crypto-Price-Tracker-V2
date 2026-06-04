@@ -17,5 +17,6 @@
   "rebalance": { "band": "0.05", "min_trade_usd": "25", "strategy": "Band" },
   "symbols": { "bitcoin": "BTC", "ethereum": "ETH", "solana": "SOL" },
   "cache": { "ttl_seconds": 30, "dir": "~/.cache/crypto-price-tracker-v2" },
-  "coingecko": { "api_key": "", "plan": "Demo" }
+  "coingecko": { "api_key": "", "plan": "Demo" },
+  "history_days": 90
 }
