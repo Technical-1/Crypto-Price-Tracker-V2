@@ -277,9 +277,9 @@ checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
 name = "coinbasis"
-version = "0.1.1"
+version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c265b0b91dc0de61470f8b3a569c747c97f4e2e4ea0420cffdfe4b9a91e59483"
+checksum = "aca28a546265d23e3ad3007053e60f0fc49e2fa29d17294bd2173dedd2935037"
 dependencies = [
  "chrono",
  "rust_decimal",
@@ -382,6 +382,7 @@ dependencies = [
  "coinbasis",
  "coingecko",
  "crossterm",
+ "cryptolytics",
  "futures",
  "ratatui",
  "reqwest",
@@ -391,6 +392,15 @@ dependencies = [
  "serde_json",
  "thiserror",
  "tokio",
+]
+
+[[package]]
+name = "cryptolytics"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3fdf5c441e9e13284d562730ed54df1e456ce7ecb3071794af74b89627cadcaa"
+dependencies = [
+ "thiserror",
 ]
 
 [[package]]

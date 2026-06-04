@@ -27,6 +27,12 @@ use crypto_price_tracker_v2::{export, ui};
 
 type Tui = Terminal<CrosstermBackend<Stdout>>;
 
+/// A message from a background fetch task.
+enum FetchMsg {
+    Prices(Result<PriceBook, String>),
+    History(Result<crypto_price_tracker_v2::prices::HistoryData, String>),
+}
+
 #[derive(Parser, Debug)]
 #[command(name = "crypto-price-tracker-v2")]
 struct Args {
@@ -36,6 +42,8 @@ struct Args {
     ledger: Option<String>,
     #[arg(long)]
     offline: bool,
+    #[arg(long)]
+    import: Option<String>,
 }
 
 fn install_panic_hook() {
@@ -70,13 +78,20 @@ async fn main() -> Result<()> {
         .ledger
         .clone()
         .unwrap_or_else(|| config.ledger_path.clone());
+
+    if let Some(csv) = args.import.as_deref() {
+        let (added, skipped) = ledger::import_csv(csv, &ledger_path).context("importing CSV")?;
+        println!("imported {added}, skipped {skipped} (ledger: {ledger_path})");
+        return Ok(());
+    }
+
     let txs = load_ledger(&ledger_path).context("loading ledger")?;
     let asset_ids: Vec<String> = ledger::assets(&txs).into_iter().collect();
 
     let mut app = App::new(config.clone(), &txs).context("building app")?;
     let cache = PriceCache::new(config.cache.expanded_dir(), config.cache.ttl_seconds);
     let vs = config.display_currency.clone();
-    let history_path = "history.json".to_string();
+    let history_path = "history.jsonl".to_string();
 
     if let Ok(Some(book)) = cache.load_fresh() {
         app.set_prices(book);
@@ -92,23 +107,51 @@ async fn main() -> Result<()> {
     install_panic_hook();
     let mut terminal = setup_terminal()?;
 
-    let (tx, mut rx) = mpsc::channel::<Result<PriceBook, String>>(4);
+    let (tx, mut rx) = mpsc::channel::<FetchMsg>(4);
     let mut events = EventStream::new();
     let mut tick = tokio::time::interval(Duration::from_secs(1));
 
-    let spawn_fetch = |tx: mpsc::Sender<Result<PriceBook, String>>| {
+    let key = config.coingecko_key();
+    let plan = config.coingecko.plan;
+    let history_days = config.history_days;
+    let spawn_fetch = {
         let ids = asset_ids.clone();
         let vs = vs.clone();
-        tokio::spawn(async move {
-            let source = CoinGeckoSource::new();
-            let msg = source.fetch(&ids, &vs).await.map_err(|e| e.to_string());
-            let _ = tx.send(msg).await;
-        });
+        let key = key.clone();
+        move |tx: mpsc::Sender<FetchMsg>| {
+            let ids = ids.clone();
+            let vs = vs.clone();
+            let key = key.clone();
+            tokio::spawn(async move {
+                let source = CoinGeckoSource::new(key.as_deref(), plan);
+                let msg = source.fetch(&ids, &vs).await.map_err(|e| e.to_string());
+                let _ = tx.send(FetchMsg::Prices(msg)).await;
+            });
+        }
+    };
+    let spawn_history = {
+        let ids = asset_ids.clone();
+        let vs = vs.clone();
+        let key = key.clone();
+        move |tx: mpsc::Sender<FetchMsg>| {
+            let ids = ids.clone();
+            let vs = vs.clone();
+            let key = key.clone();
+            tokio::spawn(async move {
+                let source = CoinGeckoSource::new(key.as_deref(), plan);
+                let msg = source
+                    .fetch_history(&ids, &vs, history_days)
+                    .await
+                    .map_err(|e| e.to_string());
+                let _ = tx.send(FetchMsg::History(msg)).await;
+            });
+        }
     };
 
     if !args.offline {
         app.loading = true;
         spawn_fetch(tx.clone());
+        spawn_history(tx.clone());
     }
 
     let res = run(
@@ -123,6 +166,7 @@ async fn main() -> Result<()> {
         args.offline,
         &mut tick,
         spawn_fetch,
+        spawn_history,
     )
     .await;
 
@@ -135,14 +179,15 @@ async fn run(
     app: &mut App,
     terminal: &mut Tui,
     events: &mut EventStream,
-    rx: &mut mpsc::Receiver<Result<PriceBook, String>>,
-    tx: &mpsc::Sender<Result<PriceBook, String>>,
+    rx: &mut mpsc::Receiver<FetchMsg>,
+    tx: &mpsc::Sender<FetchMsg>,
     cache: &PriceCache,
     history_path: &str,
     refresh_seconds: u64,
     offline: bool,
     tick: &mut tokio::time::Interval,
-    spawn_fetch: impl Fn(mpsc::Sender<Result<PriceBook, String>>),
+    spawn_fetch: impl Fn(mpsc::Sender<FetchMsg>),
+    spawn_history: impl Fn(mpsc::Sender<FetchMsg>),
 ) -> Result<()> {
     // Countdown (in seconds) to the next automatic refresh; the 1s tick drives it.
     let mut secs_left = refresh_seconds.max(1);
@@ -164,6 +209,7 @@ async fn run(
                             }
                             if wants_refresh && !offline {
                                 spawn_fetch(tx.clone());
+                                spawn_history(tx.clone());
                             }
                         }
                     }
@@ -181,23 +227,34 @@ async fn run(
                     app.seconds_to_refresh = secs_left;
                 }
             }
-            Some(result) = rx.recv() => {
-                match result {
-                    Ok(book) => {
+            Some(msg) = rx.recv() => {
+                match msg {
+                    FetchMsg::Prices(Ok(book)) => {
                         let _ = cache.store(&book);
                         app.set_prices(book);
                         if let Some(report) = &app.derived.valuation {
                             let _ = perf::record_snapshot(
-                                history_path, report.total_value, Utc::now(), refresh_seconds as i64,
+                                history_path,
+                                report.total_value,
+                                report.total_cost,
+                                report.total_unrealized,
+                                Utc::now(),
+                                refresh_seconds as i64,
                             );
                         }
                         if let Ok(h) = perf::load_history(history_path) {
                             app.history = h;
                         }
                     }
-                    Err(e) => {
+                    FetchMsg::Prices(Err(e)) => {
                         app.loading = false;
                         app.status.message = format!("fetch error: {e}");
+                    }
+                    FetchMsg::History(Ok(h)) => {
+                        app.set_price_history(h);
+                    }
+                    FetchMsg::History(Err(e)) => {
+                        app.status.message = format!("history error: {e}");
                     }
                 }
             }

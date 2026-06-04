@@ -52,11 +52,17 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
     }
     let compare_h = (compare_lines.len() as u16 + 2).clamp(3, 12);
 
+    // Analytics panel: strategy line, per-coin risk, portfolio vol, correlation,
+    // and backtest comparison.
+    let analytics_lines = analytics_lines(app);
+    let analytics_h = (analytics_lines.len() as u16 + 2).clamp(3, 16);
+
     let chunks = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(3),
             Constraint::Length(compare_h),
+            Constraint::Length(analytics_h),
             Constraint::Min(1),
         ])
         .split(area);
@@ -87,6 +93,15 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
                 .title(" Current vs Target "),
         ),
         chunks[1],
+    );
+
+    f.render_widget(
+        Paragraph::new(analytics_lines).block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title(" Strategy / Risk / Backtest "),
+        ),
+        chunks[2],
     );
 
     let header = Row::new(
@@ -144,8 +159,95 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
                 .borders(Borders::ALL)
                 .title(" Suggested trades (estimates) "),
         ),
-        chunks[2],
+        chunks[3],
     );
+}
+
+/// Build the strategy/risk/correlation/backtest lines for the analytics panel.
+fn analytics_lines(app: &App) -> Vec<Line<'static>> {
+    let mut lines: Vec<Line> = Vec::new();
+
+    let strat_kind = match app.strategy {
+        Strategy::Band => "Band",
+        Strategy::Full => "Full",
+    };
+    lines.push(Line::from(format!(
+        "Strategy: {:?} \u{b7} {} (w cycles target, t toggles band/full)",
+        app.target_strategy, strat_kind,
+    )));
+
+    // Per-coin daily/annualized volatility.
+    if app.derived.vols_daily.is_empty() {
+        lines.push(Line::from(
+            "Risk: (no price history \u{2014} fetch with `r`)".to_string(),
+        ));
+    } else {
+        lines.push(Line::from("Risk (volatility):".to_string()));
+        for (coin, vd) in &app.derived.vols_daily {
+            let va = app.derived.vols_annual.get(coin).copied().unwrap_or(0.0);
+            lines.push(Line::from(format!(
+                "  {:>6}  daily {:>6.2}%   annual {:>7.2}%",
+                app.config.symbol(coin),
+                vd * 100.0,
+                va * 100.0,
+            )));
+        }
+    }
+
+    // Portfolio volatility.
+    match app.derived.portfolio_vol {
+        Some(pv) => lines.push(Line::from(format!(
+            "Portfolio daily volatility: {:.2}%",
+            pv * 100.0
+        ))),
+        None => lines.push(Line::from(
+            "Portfolio daily volatility: (need \u{2265}2 coins with history)".to_string(),
+        )),
+    }
+
+    // Correlation matrix (only when populated).
+    if !app.derived.correlation.is_empty() {
+        let mut coins: Vec<String> = app.derived.vols_daily.keys().cloned().collect();
+        coins.sort();
+        if !coins.is_empty() {
+            let header: String = coins
+                .iter()
+                .map(|c| format!("{:>7}", app.config.symbol(c)))
+                .collect();
+            lines.push(Line::from(format!("Correlation:  {header}")));
+            for a in &coins {
+                let row: String = coins
+                    .iter()
+                    .map(|b| {
+                        let v = app
+                            .derived
+                            .correlation
+                            .get(&(a.clone(), b.clone()))
+                            .copied()
+                            .unwrap_or(0.0);
+                        format!("{v:>7.2}")
+                    })
+                    .collect();
+                lines.push(Line::from(format!(
+                    "  {:>6}    {}",
+                    app.config.symbol(a),
+                    row
+                )));
+            }
+        }
+    }
+
+    // Backtest comparison.
+    match (app.derived.backtest_current, app.derived.backtest_target) {
+        (Some(cur), Some(tgt)) => lines.push(Line::from(format!(
+            "Backtest (buy&hold): current {:+.2}% / target {:+.2}%",
+            cur * 100.0,
+            tgt * 100.0,
+        ))),
+        _ => lines.push(Line::from("Backtest (buy&hold): (no history)".to_string())),
+    }
+
+    lines
 }
 
 #[cfg(test)]
@@ -188,12 +290,30 @@ mod tests {
             sparklines: HashMap::new(),
             stale: false,
         });
+        let mut hist = HashMap::new();
+        hist.insert(
+            "bitcoin".to_string(),
+            vec![
+                (Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap(), 100.0),
+                (Utc.with_ymd_and_hms(2024, 1, 2, 0, 0, 0).unwrap(), 110.0),
+                (Utc.with_ymd_and_hms(2024, 1, 3, 0, 0, 0).unwrap(), 105.0),
+            ],
+        );
+        hist.insert(
+            "ethereum".to_string(),
+            vec![
+                (Utc.with_ymd_and_hms(2024, 1, 1, 0, 0, 0).unwrap(), 50.0),
+                (Utc.with_ymd_and_hms(2024, 1, 2, 0, 0, 0).unwrap(), 52.0),
+                (Utc.with_ymd_and_hms(2024, 1, 3, 0, 0, 0).unwrap(), 48.0),
+            ],
+        );
+        a.set_price_history(hist);
         a
     }
 
     #[test]
     fn shows_action_columns_and_banner() {
-        let mut t = Terminal::new(TestBackend::new(140, 26)).unwrap();
+        let mut t = Terminal::new(TestBackend::new(140, 40)).unwrap();
         t.draw(|f| crate::ui::rebalance::render(f, f.area(), &app()))
             .unwrap();
         let s: String = t
@@ -209,5 +329,8 @@ mod tests {
         assert!(s.contains("balance")); // in/out of balance banner
         assert!(s.contains("Current vs Target"));
         assert!(s.contains("tgt"));
+        assert!(s.contains("Risk"));
+        assert!(s.contains("Backtest"));
+        assert!(s.contains("Strategy"));
     }
 }

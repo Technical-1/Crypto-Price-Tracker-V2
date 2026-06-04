@@ -6,7 +6,8 @@ description = "A terminal UI for tracking a crypto portfolio: prices, cost basis
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-coinbasis = { version = "0.1", features = ["serde"] }
+coinbasis = { version = "0.2", features = ["serde"] }
+cryptolytics = "0.1"
 coingecko = "1.1"
 ratatui = "0.29"
 crossterm = { version = "0.28", features = ["event-stream"] }
@@ -21,7 +22,6 @@ thiserror = "1"
 clap = { version = "4", features = ["derive"] }
 reqwest = "0.12"
 futures = "0.3"
-
 
 [profile.release]
 lto = true

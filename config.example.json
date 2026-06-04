@@ -3,9 +3,20 @@
   "default_method": "Fifo",
   "display_currency": "usd",
   "refresh_seconds": 60,
-  "tax": { "short_term_rate": 0.24, "long_term_rate": 0.15 },
+  "tax": {
+    "jurisdiction": "US",
+    "long_term_threshold_days": 365,
+    "short_term_rate": "0.35",
+    "long_term_brackets": [
+      {"up_to": "47025", "rate": "0.0"},
+      {"up_to": "518900", "rate": "0.15"},
+      {"up_to": null, "rate": "0.20"}
+    ]
+  },
   "targets": { "bitcoin": "0.6", "ethereum": "0.3", "solana": "0.1" },
   "rebalance": { "band": "0.05", "min_trade_usd": "25", "strategy": "Band" },
   "symbols": { "bitcoin": "BTC", "ethereum": "ETH", "solana": "SOL" },
-  "cache": { "ttl_seconds": 30, "dir": "~/.cache/crypto-price-tracker-v2" }
+  "cache": { "ttl_seconds": 30, "dir": "~/.cache/crypto-price-tracker-v2" },
+  "coingecko": { "api_key": "", "plan": "Demo" },
+  "history_days": 90
 }
