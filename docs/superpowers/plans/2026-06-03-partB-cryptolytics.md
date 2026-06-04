@@ -8,7 +8,7 @@
 
 **Tech Stack:** Rust 2021, `thiserror`, optional `serde`; dev: `proptest`.
 
-**Repo:** NEW at `/Users/jacobkanfer/CodeRepos/cryptolytics` (Rust owns this path; the Python parity package uses `cryptolytics-py`).
+**Repo:** NEW at `/Users/jacobkanfer/CodeRepos/cryptolytics-rs` (the no-suffix `~/CodeRepos/cryptolytics` is occupied by the concurrent Python parity build; the published crates.io name is still `cryptolytics`).
 
 **Author rule (hook-enforced):** author `51518860+Technical-1@users.noreply.github.com`; NO Co-Authored-By / AI attribution; never `--no-verify`.
 
@@ -24,7 +24,7 @@
 
 - [ ] **Step 1: Init repo + dirs.**
 ```bash
-mkdir -p /Users/jacobkanfer/CodeRepos/cryptolytics/src && cd /Users/jacobkanfer/CodeRepos/cryptolytics
+mkdir -p /Users/jacobkanfer/CodeRepos/cryptolytics-rs/src && cd /Users/jacobkanfer/CodeRepos/cryptolytics-rs
 git init -q
 git config user.email   # confirm 51518860+Technical-1@users.noreply.github.com (set it if not)
 printf '/target\nCargo.lock\n' > .gitignore   # library crate: Cargo.lock not committed
@@ -821,7 +821,7 @@ git add examples/ tests/ Cargo.toml && git commit -m "Add examples and integrati
 - [ ] **Step 2: Docs + full gates.** `cargo doc --no-deps --all-features` (missing-docs gate), `cargo fmt --check`, `cargo clippy --all-targets --all-features -- -D warnings`, `cargo test --all-features` → all green.
 - [ ] **Step 3: Package dry-run.** `cargo publish --dry-run` then `cargo package --list` → succeeds; `src/*.rs` + `examples/*` present.
 - [ ] **Step 4: Commit.** `git add README.md && git commit -m "Add README and finalize cryptolytics 0.1.0"`.
-- [ ] **Step 5: PUBLISH GATE.** Controller stops and asks **Jacob to run `cargo publish`** in `~/CodeRepos/cryptolytics` and confirm `cryptolytics 0.1.0` is live on crates.io before Part C's analytics tasks (C3.2+).
+- [ ] **Step 5: PUBLISH GATE.** Controller stops and asks **Jacob to run `cargo publish`** in `~/CodeRepos/cryptolytics-rs` and confirm `cryptolytics 0.1.0` is live on crates.io before Part C's analytics tasks (C3.2+).
 
 ---
 
