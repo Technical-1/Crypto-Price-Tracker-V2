@@ -16,7 +16,7 @@ use ratatui::Terminal;
 use tokio::sync::mpsc;
 
 use crypto_price_tracker_v2::app::{App, View};
-use crypto_price_tracker_v2::config::Config;
+use crypto_price_tracker_v2::config;
 use crypto_price_tracker_v2::event::{apply, map_key, Action};
 use crypto_price_tracker_v2::ledger::{self, load_ledger};
 use crypto_price_tracker_v2::perf;
@@ -36,8 +36,8 @@ enum FetchMsg {
 #[derive(Parser, Debug)]
 #[command(name = "crypto-price-tracker-v2")]
 struct Args {
-    #[arg(long, default_value = "config.json")]
-    config: String,
+    #[arg(long)]
+    config: Option<String>,
     #[arg(long)]
     ledger: Option<String>,
     #[arg(long)]
@@ -73,11 +73,20 @@ fn restore_terminal(terminal: &mut Tui) -> Result<()> {
 #[tokio::main]
 async fn main() -> Result<()> {
     let args = Args::parse();
-    let config = Config::load(&args.config).context("loading config")?;
-    let ledger_path = args
-        .ledger
-        .clone()
-        .unwrap_or_else(|| config.ledger_path.clone());
+    let resolved = config::resolve_default(args.config.as_deref()).context("loading config")?;
+    if let Some(starter) = &resolved.created_starter {
+        println!("Wrote starter config to {}", starter.display());
+    }
+    let config_dir = resolved.dir;
+    let config = resolved.config;
+    // A relative ledger_path resolves against the config's directory so a global
+    // config works from any working directory; --ledger overrides it verbatim.
+    let ledger_path = match args.ledger.clone() {
+        Some(p) => p,
+        None => config::resolve_relative(&config_dir, &config.ledger_path)
+            .to_string_lossy()
+            .into_owned(),
+    };
 
     if let Some(csv) = args.import.as_deref() {
         let (added, skipped) = ledger::import_csv(csv, &ledger_path).context("importing CSV")?;
@@ -91,7 +100,9 @@ async fn main() -> Result<()> {
     let mut app = App::new(config.clone(), &txs).context("building app")?;
     let cache = PriceCache::new(config.cache.expanded_dir(), config.cache.ttl_seconds);
     let vs = config.display_currency.clone();
-    let history_path = "history.jsonl".to_string();
+    let history_path = config::resolve_relative(&config_dir, "history.jsonl")
+        .to_string_lossy()
+        .into_owned();
 
     if let Ok(Some(book)) = cache.load_fresh() {
         app.set_prices(book);

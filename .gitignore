@@ -6,4 +6,4 @@
 # (ledger). The *.example.* templates stay tracked; your real files do not.
 /config.json
 /ledger.json
-/snapshots.jsonl
+/history.jsonl

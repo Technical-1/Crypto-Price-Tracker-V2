@@ -10,10 +10,17 @@ use rust_decimal::Decimal;
 use crate::error::AppError;
 
 pub fn load_ledger(path: &str) -> Result<Vec<Transaction>, AppError> {
-    let text = std::fs::read_to_string(path).map_err(|e| AppError::Ledger {
-        path: path.to_string(),
-        reason: e.to_string(),
-    })?;
+    let text = match std::fs::read_to_string(path) {
+        Ok(t) => t,
+        // A missing ledger just means "no transactions yet" (e.g. first run).
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) => {
+            return Err(AppError::Ledger {
+                path: path.to_string(),
+                reason: e.to_string(),
+            })
+        }
+    };
     serde_json::from_str(&text).map_err(|e| AppError::Ledger {
         path: path.to_string(),
         reason: e.to_string(),
@@ -171,6 +178,15 @@ mod tests {
         let assets = assets(&txs);
         let v: Vec<_> = assets.into_iter().collect();
         assert_eq!(v, vec!["bitcoin".to_string(), "ethereum".to_string()]);
+    }
+
+    #[test]
+    fn missing_ledger_is_empty_not_an_error() {
+        let dir = std::env::temp_dir().join("cpt2_ledger_missing");
+        let _ = std::fs::remove_dir_all(&dir);
+        let path = dir.join("ledger.json"); // never created
+        let txs = load_ledger(path.to_str().unwrap()).unwrap();
+        assert!(txs.is_empty());
     }
 
     #[test]

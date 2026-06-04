@@ -1,6 +1,6 @@
 [package]
 name = "crypto-price-tracker-v2"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "A terminal UI for tracking a crypto portfolio: prices, cost basis, tax, rebalancing, and performance."
 license = "MIT OR Apache-2.0"

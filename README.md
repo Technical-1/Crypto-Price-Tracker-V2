@@ -57,34 +57,49 @@ live prices come from [`coingecko`](https://crates.io/crates/coingecko).
 
 ### Prerequisites
 
-- Rust toolchain (stable, 2021 edition or later)
-- Optional: a [CoinGecko](https://www.coingecko.com/en/api) API key for price
-  history (the market-chart endpoint requires a key)
+- A free [CoinGecko](https://www.coingecko.com/en/api) API key — the public API
+  now requires a Demo key. Set `COINGECKO_API_KEY` or put it in the config.
+- Rust toolchain only if building from source (the Cargo/Homebrew installs build
+  from source and bring their own).
 
 ### Installation
 
 ```bash
-git clone https://github.com/Technical-1/Crypto-Price-Tracker-V2
-cd Crypto-Price-Tracker-V2
-cp config.example.json config.json
-cp ledger.example.json ledger.json
+# With Cargo
+cargo install crypto-price-tracker-v2
+
+# Or with Homebrew
+brew install Technical-1/tap/crypto-price-tracker-v2
 ```
 
-Edit `config.json` to set your ledger path, display currency, tax brackets,
-target allocation weights, and CoinGecko key/plan. Asset IDs are CoinGecko
-coin IDs (`bitcoin`, `ethereum`, `solana`, …).
+Or run from source:
+
+```bash
+git clone https://github.com/Technical-1/Crypto-Price-Tracker-V2
+cd Crypto-Price-Tracker-V2
+cargo run --release
+```
+
+On first run with no config file, the app writes a starter config to
+`~/.config/crypto-price-tracker-v2/config.json` and prints the path. Edit that
+file to set your ledger path, display currency, tax brackets, target allocation
+weights, and CoinGecko key/plan. Asset IDs are CoinGecko coin IDs (`bitcoin`,
+`ethereum`, `solana`, …).
 
 ### Usage
 
 ```bash
 # Launch the TUI (fetches live prices on startup)
-cargo run --release
+crypto-price-tracker-v2
 
 # Run offline — serve from cache only, no network calls
-cargo run --release -- --offline
+crypto-price-tracker-v2 --offline
+
+# Use a specific config file
+crypto-price-tracker-v2 --config /path/to/config.json
 
 # Import transactions from a CSV, then exit
-cargo run --release -- --import transactions.example.csv --ledger ledger.json
+crypto-price-tracker-v2 --import transactions.example.csv --ledger ledger.json
 ```
 
 The CSV format is `date,coin,action,quantity,price_usd,fee_usd` with an optional
@@ -108,6 +123,12 @@ fee defaults to `0`. Invalid rows are skipped and reported to stderr.
 | `cache` | Cache directory and TTL in seconds |
 | `coingecko` | `api_key` and `plan` (`Demo` or `Pro`) |
 | `history_days` | Days of daily price history fetched per coin (default `90`) |
+
+The app looks for a config file in this order: `--config <path>` if given, then
+`./config.json` in the current directory, then
+`~/.config/crypto-price-tracker-v2/config.json` (respecting `$XDG_CONFIG_HOME`).
+A relative `ledger_path` resolves against the config file's directory, so a
+global config works from any working directory.
 
 The `COINGECKO_API_KEY` environment variable takes precedence over the config value.
 
