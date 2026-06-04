@@ -25,8 +25,8 @@ deps: `thiserror = "1"`; `serde = { version = "1", features = ["derive"], option
 - `annualize(daily_vol: f64, periods_per_year: f64) -> f64` — `daily_vol * periods_per_year.sqrt()` (caller passes `365.0`).
 
 ### `correlation`
-- `pearson(a: &[f64], b: &[f64]) -> Option<f64>` — Pearson over the overlapping prefix (`min` length); `None` if `< 2` overlap or either series has zero variance.
-- `correlation_matrix(returns_by_asset: &BTreeMap<String, Vec<f64>>) -> BTreeMap<(String, String), f64>` — all ordered pairs; diagonal `1.0`; off-diagonal via `pearson` (missing → `0.0`).
+- `correlation(a: &[f64], b: &[f64]) -> Option<f64>` — Pearson over the overlapping prefix (`min` length); `None` if `< 2` overlap or either series has zero variance. (Named `correlation` to match the Python `cryptolytics` parity package — see §8.)
+- `correlation_matrix(returns_by_asset: &BTreeMap<String, Vec<f64>>) -> BTreeMap<(String, String), f64>` — all ordered pairs; diagonal `1.0`; off-diagonal via `correlation` (missing → `0.0`).
 
 ### `portfolio`
 - `portfolio_volatility(weights: &BTreeMap<String, f64>, vols: &BTreeMap<String, f64>, corr: &BTreeMap<(String, String), f64>) -> f64` — `sqrt(Σ_i Σ_j w_i w_j σ_i σ_j ρ_ij)`; missing `ρ` defaults `1.0` if `i==j` else `0.0`; variance `≤ 0` → `0.0`.
@@ -74,3 +74,10 @@ Gates: `cargo fmt --check`, `cargo clippy --all-targets --all-features -- -D war
 - **Overlap with `coinbasis::stats`:** intentional; the crates serve different audiences. Documented in the README.
 - **f64/Decimal boundary:** Part C converts V2's `Decimal` values to `f64` at the cryptolytics call boundary and back for display — specified in Part C.
 - **Publish gating:** Part C analytics can't compile until 0.1.0 is published (same `[patch.crates-io]` fallback available).
+
+## 8. Cross-ecosystem parity (vs the Python `cryptolytics`)
+Validated 2026-06-03 against the Python parity program (`~/.claude/tmp/crypto-python-parity/`).
+- **Repo path:** Rust owns `~/CodeRepos/cryptolytics`. The Python parity package must use **`~/CodeRepos/cryptolytics-py`** (mirroring the `coinbasis`/`coinbasis-py` convention) — the master arch currently points both at `~/CodeRepos/cryptolytics`, a directory collision to fix on the Python side. PyPI and crates.io names can both be `cryptolytics` (different registries).
+- **Shared analytics names match:** `correlation` (not `pearson`), `correlation_matrix`, `portfolio_volatility`, `sharpe_ratio`, `max_drawdown`, `cumulative_return`, `daily_returns`, `volatility`, `annualize`, `target_weights`, `compute_trades`, `buy_and_hold_return` line up name-for-name with the Python package. (Rust `annualize` takes `periods_per_year` explicitly where Python hardcodes 365 — Rust is the superset; V2 callers pass `365.0`.)
+- **Intentional scope asymmetry (per master §1):** the Python `cryptolytics` is broad ("analytics + ALL networking" — it depends on Python-`coinbasis` and folds in the CoinGecko client, DefiLlama, RSS, **tax-aware rebalance**, perf, history, staking, news). The Rust `cryptolytics` is deliberately **pure & standalone** (no `coinbasis` dep, no network): the CoinGecko client is the external `coingecko` crate, and tax-aware rebalance / perf / history reconstruction live in the **V2 app** (which depends on both crates). All capabilities exist in the Rust bucket — the package boundary just differs, exactly as the master §1 table maps it.
+- **Recommendation for the Python side:** move `correlation` / `correlation_matrix` / `portfolio_volatility` out of Python `coinbasis.stats` and into Python `cryptolytics`, so BOTH ecosystems keep `coinbasis(.stats)` = single-series only and `cryptolytics` = multi-asset correlation/portfolio/allocation/backtest.

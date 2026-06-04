@@ -99,3 +99,11 @@ Pure domain additions (`import_csv`, `reconstruct_series`, recompute analytics w
 - **Reconstruction cost:** rebuilding a `Portfolio` per day is O(days × ledger); fine for ~90 days and typical ledgers.
 - **Snapshot format migration:** `#[serde(default)]` on new `cost`/`pl` keeps old `history.json` readable.
 - **Publish gating:** C compiles only after A+B are on crates.io (or via temporary `[patch.crates-io]` path deps, removed before final commits).
+
+## Cross-ecosystem parity (vs the Python app)
+Validated 2026-06-03 against `~/.claude/tmp/crypto-python-parity/phase3-app/`. Confirmed parity: all 6 views, the Fifo/Lifo/Hifo/Average method switcher (SpecificId excluded from the live cycle in both), ledger schema (coinbasis 8-event multi-wallet), tax brackets, tax-aware rebalance, caching + offline. Two genuine **V2 gaps** the Python side exposes, plus cosmetic divergences:
+
+- **GAP — CoinGecko API key + Demo/Pro + keyed-fallback (decision pending):** V2 only ever constructs `CoinGeckoClient::new(COINGECKO_API_DEMO_URL)` (keyless demo, no key, no Pro, no 429-retry-with-key). The Python client supports `COINGECKO_API_KEY` + plan (`demo`/`pro`) URL/header routing + keyless→429→keyed retry. If chosen, add to Part C: read an API key + plan from config/env, construct `CoinGeckoSource` accordingly (`new_with_demo_api_key` / `new_with_pro_api_key`), and optionally retry-with-key on 429. Folds naturally into C3 (already touching the prices layer).
+- **DIVERGENCE — config surface (decision pending):** V2 nests everything in one `config.json` (CWD); Python uses separate files (`taxconfig.json`, `targets.json`, `staking.json`, `news.json`) + XDG `~/.config` + env. Cosmetic (no numeric impact); align V2 to the split/XDG layout only if cross-ecosystem config parity is wanted.
+- **ALIGNMENT (applied in C4):** Python snapshots are `snapshots.jsonl` (JSONL, `{date, total_value, cost, pl}`). C4 already adds `cost`/`pl`; for parity, C4 will also rename the field to `date` and write **JSONL** (one object per line) instead of V2 v0.1's JSON array — append-friendlier and matches Python. (Old `history.json` array still readable via a one-time tolerant load.)
+- **CONFIRMED intentional:** staking + news remain V2 roadmap Phases 4–5 (master §8); the broad-vs-pure `cryptolytics` scope split is per master §1 (see Part B §8).
