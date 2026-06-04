@@ -5,7 +5,6 @@ use ratatui::style::{Color, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Cell, Paragraph, Row, Table};
 use ratatui::Frame;
-use rust_decimal::prelude::ToPrimitive;
 use rust_decimal::Decimal;
 
 use coinbasis::Term;
@@ -83,25 +82,22 @@ pub fn render(f: &mut Frame, area: Rect, app: &App) {
 
     let mut lines = Vec::new();
     if let Some(cg) = &app.derived.capital_gains {
-        let short_tax = cg.short_term_gain.to_f64().unwrap_or(0.0) * app.config.tax.short_term_rate;
-        let long_tax = cg.long_term_gain.to_f64().unwrap_or(0.0) * app.config.tax.long_term_rate;
+        let est = coinbasis::tax::estimate(cg, &app.config.tax);
         lines.push(Line::from(format!(
-            "Short-term gain: {:+.2}",
-            cg.short_term_gain
+            "Short-term gain: {:+.2}    tax: {:.2}",
+            est.short_term_gain, est.short_term_tax
         )));
         lines.push(Line::from(format!(
-            "Long-term gain:  {:+.2}",
-            cg.long_term_gain
+            "Long-term gain:  {:+.2}    tax: {:.2}",
+            est.long_term_gain, est.long_term_tax
         )));
         lines.push(Line::from(format!(
             "Total gain:      {:+.2}",
             cg.total_gain
         )));
         lines.push(Line::from(format!(
-            "Estimated Tax:   {:.2} (est., user rates {:.0}%/{:.0}%)",
-            short_tax + long_tax,
-            app.config.tax.short_term_rate * 100.0,
-            app.config.tax.long_term_rate * 100.0,
+            "Estimated Tax:   {:.2}  ({}, brackets)",
+            est.total_tax, app.config.tax.jurisdiction
         )));
     }
     if let Some(inc) = &app.derived.income {
@@ -167,5 +163,6 @@ mod tests {
         assert!(s.contains("Short-term"));
         assert!(s.contains("Estimated Tax"));
         assert!(s.contains("2024"));
+        assert!(s.contains("US"));
     }
 }
