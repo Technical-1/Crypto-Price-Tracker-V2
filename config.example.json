@@ -16,5 +16,6 @@
   "targets": { "bitcoin": "0.6", "ethereum": "0.3", "solana": "0.1" },
   "rebalance": { "band": "0.05", "min_trade_usd": "25", "strategy": "Band" },
   "symbols": { "bitcoin": "BTC", "ethereum": "ETH", "solana": "SOL" },
-  "cache": { "ttl_seconds": 30, "dir": "~/.cache/crypto-price-tracker-v2" }
+  "cache": { "ttl_seconds": 30, "dir": "~/.cache/crypto-price-tracker-v2" },
+  "coingecko": { "api_key": "", "plan": "Demo" }
 }

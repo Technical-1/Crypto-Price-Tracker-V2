@@ -10,6 +10,7 @@ use coingecko::CoinGeckoClient;
 use rust_decimal::Decimal;
 
 use super::{PriceBook, PriceSource, Quote};
+use crate::config::Plan;
 use crate::error::AppError;
 
 pub struct CoinGeckoSource {
@@ -17,18 +18,21 @@ pub struct CoinGeckoSource {
 }
 
 impl CoinGeckoSource {
-    /// No API key (public/demo endpoint). For a demo key, swap in
-    /// `CoinGeckoClient::new_with_demo_api_key(&key)`.
-    pub fn new() -> Self {
-        Self {
-            client: CoinGeckoClient::new(coingecko::COINGECKO_API_DEMO_URL),
-        }
+    /// Build a client for the given API key and plan. With no key, falls back
+    /// to the public/demo endpoint.
+    pub fn new(api_key: Option<&str>, plan: Plan) -> Self {
+        let client = match (api_key, plan) {
+            (Some(k), Plan::Pro) => CoinGeckoClient::new_with_pro_api_key(k),
+            (Some(k), Plan::Demo) => CoinGeckoClient::new_with_demo_api_key(k),
+            (None, _) => CoinGeckoClient::new(coingecko::COINGECKO_API_DEMO_URL),
+        };
+        Self { client }
     }
 }
 
 impl Default for CoinGeckoSource {
     fn default() -> Self {
-        Self::new()
+        Self::new(None, Plan::Demo)
     }
 }
 

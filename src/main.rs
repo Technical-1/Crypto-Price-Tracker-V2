@@ -105,11 +105,14 @@ async fn main() -> Result<()> {
     let mut events = EventStream::new();
     let mut tick = tokio::time::interval(Duration::from_secs(1));
 
+    let key = config.coingecko_key();
+    let plan = config.coingecko.plan;
     let spawn_fetch = |tx: mpsc::Sender<Result<PriceBook, String>>| {
         let ids = asset_ids.clone();
         let vs = vs.clone();
+        let key = key.clone();
         tokio::spawn(async move {
-            let source = CoinGeckoSource::new();
+            let source = CoinGeckoSource::new(key.as_deref(), plan);
             let msg = source.fetch(&ids, &vs).await.map_err(|e| e.to_string());
             let _ = tx.send(msg).await;
         });

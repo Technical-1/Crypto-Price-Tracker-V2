@@ -23,6 +23,23 @@ pub struct Config {
     #[serde(default)]
     pub symbols: BTreeMap<String, String>,
     pub cache: CacheConfig,
+    #[serde(default)]
+    pub coingecko: CoinGeckoConfig,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub enum Plan {
+    #[default]
+    Demo,
+    Pro,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct CoinGeckoConfig {
+    #[serde(default)]
+    pub api_key: Option<String>,
+    #[serde(default)]
+    pub plan: Plan,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -117,7 +134,17 @@ impl Config {
                 ttl_seconds: 30,
                 dir: "~/.cache/crypto-price-tracker-v2".into(),
             },
+            coingecko: CoinGeckoConfig::default(),
         }
+    }
+
+    /// CoinGecko API key, preferring the `COINGECKO_API_KEY` env var over config.
+    pub fn coingecko_key(&self) -> Option<String> {
+        std::env::var("COINGECKO_API_KEY")
+            .ok()
+            .filter(|s| !s.is_empty())
+            .or_else(|| self.coingecko.api_key.clone())
+            .filter(|s| !s.is_empty())
     }
 }
 
@@ -183,6 +210,14 @@ mod tests {
         let c: Config = serde_json::from_str(sample_json()).unwrap();
         let dir = c.cache.expanded_dir();
         assert!(!dir.to_string_lossy().starts_with('~'));
+    }
+
+    #[test]
+    fn parses_coingecko_key_and_plan() {
+        let json = r#"{ "api_key": "abc", "plan": "Pro" }"#;
+        let c: CoinGeckoConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(c.api_key.as_deref(), Some("abc"));
+        assert_eq!(c.plan, Plan::Pro);
     }
 
     #[test]
