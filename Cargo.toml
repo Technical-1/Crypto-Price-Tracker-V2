@@ -4,6 +4,11 @@ version = "0.1.0"
 edition = "2021"
 description = "A terminal UI for tracking a crypto portfolio: prices, cost basis, tax, rebalancing, and performance."
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/Technical-1/Crypto-Price-Tracker-V2"
+homepage = "https://github.com/Technical-1/Crypto-Price-Tracker-V2"
+readme = "README.md"
+keywords = ["crypto", "portfolio", "tui", "cryptocurrency", "finance"]
+categories = ["command-line-utilities", "finance"]
 
 [dependencies]
 coinbasis = { version = "0.2", features = ["serde"] }
