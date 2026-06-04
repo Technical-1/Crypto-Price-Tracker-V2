@@ -23,10 +23,5 @@ clap = { version = "4", features = ["derive"] }
 reqwest = "0.12"
 futures = "0.3"
 
-
-[patch.crates-io]
-coinbasis = { path = "/Users/jacobkanfer/CodeRepos/coinbasis-rs" }
-cryptolytics = { path = "/Users/jacobkanfer/CodeRepos/cryptolytics-rs" }
-
 [profile.release]
 lto = true
