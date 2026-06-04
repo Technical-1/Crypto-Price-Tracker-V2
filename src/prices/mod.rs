@@ -42,10 +42,21 @@ impl PriceBook {
     }
 }
 
+/// asset id -> daily (timestamp, price) series.
+pub type HistoryData = std::collections::HashMap<String, Vec<(chrono::DateTime<chrono::Utc>, f64)>>;
+
 #[allow(async_fn_in_trait)]
 pub trait PriceSource {
     /// Fetch quotes for `ids` priced in `vs` (e.g. "usd").
     async fn fetch(&self, ids: &[String], vs: &str) -> Result<PriceBook, AppError>;
+
+    /// Fetch up to `days` of daily price history per id (best-effort per id).
+    async fn fetch_history(
+        &self,
+        ids: &[String],
+        vs: &str,
+        days: u32,
+    ) -> Result<HistoryData, AppError>;
 }
 
 #[cfg(test)]

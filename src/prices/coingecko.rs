@@ -9,7 +9,7 @@ use coingecko::params::{MarketsOrder, PriceChangePercentage};
 use coingecko::CoinGeckoClient;
 use rust_decimal::Decimal;
 
-use super::{PriceBook, PriceSource, Quote};
+use super::{HistoryData, PriceBook, PriceSource, Quote};
 use crate::config::Plan;
 use crate::error::AppError;
 
@@ -98,6 +98,37 @@ impl PriceSource for CoinGeckoSource {
             sparklines,
             stale: false,
         })
+    }
+
+    async fn fetch_history(
+        &self,
+        ids: &[String],
+        vs: &str,
+        days: u32,
+    ) -> Result<HistoryData, AppError> {
+        use chrono::{TimeZone, Utc};
+        let mut out = HistoryData::new();
+        for id in ids {
+            match self
+                .client
+                .coin_market_chart(id, vs, days as i64, true)
+                .await
+            {
+                Ok(chart) => {
+                    let series = chart
+                        .prices
+                        .iter()
+                        .filter_map(|p| {
+                            let (ms, price) = (*p.first()? as i64, *p.get(1)?);
+                            Utc.timestamp_millis_opt(ms).single().map(|t| (t, price))
+                        })
+                        .collect();
+                    out.insert(id.clone(), series);
+                }
+                Err(_) => { /* best-effort: skip this id */ }
+            }
+        }
+        Ok(out)
     }
 }
 
