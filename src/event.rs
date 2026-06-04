@@ -16,6 +16,7 @@ pub enum Action {
     PrevYear,
     ToggleStrategy,
     CycleTargetStrategy,
+    TogglePlayback,
     Refresh,
     Export,
     SelectNext,
@@ -35,6 +36,7 @@ pub fn map_key(key: KeyEvent) -> Option<Action> {
         KeyCode::Char('[') => Action::PrevYear,
         KeyCode::Char('t') => Action::ToggleStrategy,
         KeyCode::Char('w') => Action::CycleTargetStrategy,
+        KeyCode::Char('p') => Action::TogglePlayback,
         KeyCode::Char('r') => Action::Refresh,
         KeyCode::Char('e') => Action::Export,
         KeyCode::Down => Action::SelectNext,
@@ -57,6 +59,7 @@ pub fn apply(app: &mut App, action: Action) -> bool {
         Action::PrevYear => app.set_year(-1),
         Action::ToggleStrategy => app.toggle_strategy(),
         Action::CycleTargetStrategy => app.cycle_target_strategy(),
+        Action::TogglePlayback => app.toggle_playback(),
         Action::Refresh => {
             app.loading = true;
             return true;

@@ -50,6 +50,15 @@ impl View {
     }
 }
 
+/// The Performance view has two presentations: a value/P&L chart over time,
+/// and a per-day scrollable playback with a holdings breakdown.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum PerfMode {
+    #[default]
+    Chart,
+    Playback,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SortKey {
     Symbol,
@@ -95,6 +104,8 @@ pub struct Derived {
     pub backtest_current: Option<f64>,
     /// Buy-and-hold return over the history window at target weights.
     pub backtest_target: Option<f64>,
+    /// Ledger-replay snapshots over the price-history window (empty when no history).
+    pub reconstructed: Vec<crate::perf::Snapshot>,
 }
 
 pub struct App {
@@ -121,6 +132,8 @@ pub struct App {
     pub price_history: HistoryData,
     /// How rebalance target weights are derived.
     pub target_strategy: TargetStrategy,
+    /// Presentation mode for the Performance view.
+    pub perf_mode: PerfMode,
 }
 
 impl App {
@@ -148,6 +161,7 @@ impl App {
             seconds_to_refresh: refresh,
             price_history: HashMap::new(),
             target_strategy: TargetStrategy::Custom,
+            perf_mode: PerfMode::Chart,
             config,
             model,
         };
@@ -302,6 +316,25 @@ impl App {
             self.derived.backtest_current = None;
             self.derived.backtest_target = None;
         }
+
+        // Ledger-replay reconstruction over the history window.
+        self.derived.reconstructed = if self.price_history.is_empty() {
+            Vec::new()
+        } else {
+            crate::perf::reconstruct_series(
+                self.model.transactions(),
+                &self.price_history,
+                self.method,
+            )
+        };
+    }
+
+    /// Flip between chart and playback presentation in the Performance view.
+    pub fn toggle_playback(&mut self) {
+        self.perf_mode = match self.perf_mode {
+            PerfMode::Chart => PerfMode::Playback,
+            PerfMode::Playback => PerfMode::Chart,
+        };
     }
 
     /// Target weights (f64) under the active [`TargetStrategy`]; on error falls
