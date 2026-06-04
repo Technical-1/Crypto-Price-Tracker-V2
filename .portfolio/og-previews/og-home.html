@@ -43,9 +43,9 @@
       line-height: 0.98; color: var(--text); }
     h1 .accent { background: linear-gradient(100deg, var(--green) 5%, var(--cyan) 95%);
       -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-    .ver { display:inline-block; font-family:'JetBrains Mono',monospace; font-size: 26px; font-weight:700;
-      color: var(--bg-0); background: var(--green); border-radius: 10px; padding: 2px 14px; margin-left: 6px;
-      vertical-align: middle; }
+    .ver { display:inline-block; font-family:'JetBrains Mono',monospace; font-size: 46px; font-weight:800;
+      color: var(--bg-0); background: var(--green); border-radius: 12px; padding: 4px 20px; margin-left: 12px;
+      vertical-align: middle; box-shadow: 0 0 30px rgba(52, 226, 155, 0.5); letter-spacing: -1px; }
     .subhead { margin-top: 24px; font-size: 24px; font-weight: 400; color: var(--muted); line-height: 1.42; }
 
     /* terminal window */
@@ -65,6 +65,7 @@
 
     table { width: 100%; border-collapse: collapse; }
     th, td { text-align: right; padding: 11px 14px; font-size: 17px; }
+    td { color: #cdd8e4; }
     th { color: var(--muted); font-size: 13px; letter-spacing: 1px; font-weight: 500; }
     th:first-child, td:first-child { text-align: left; }
     .sym { color: var(--text); font-weight: 700; }
@@ -87,7 +88,7 @@
   <div class="og-card">
     <div class="content">
       <div class="eyebrow"><span class="pulse"></span>Rust &bull; ratatui TUI</div>
-      <h1>Crypto<br>Price <span class="accent">Tracker</span><span class="ver">v2</span></h1>
+      <h1>Crypto<br>Price <span class="accent">Tracker</span><span class="ver">V2</span></h1>
       <div class="subhead">Live prices, cost-basis &amp; tax, rebalancing and performance &mdash; a fast portfolio dashboard in your terminal.</div>
     </div>
 
@@ -120,7 +121,7 @@
         <span class="ftag">tokio</span>
         <span class="ftag">CoinGecko</span>
       </div>
-      <div class="url">github.com/Technical-1</div>
+      <div class="url">crates.io/crates/crypto-price-tracker-v2</div>
     </div>
   </div>
 </body>
