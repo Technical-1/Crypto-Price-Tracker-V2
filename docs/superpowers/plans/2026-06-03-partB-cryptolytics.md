@@ -29,7 +29,7 @@ git init -q
 git config user.email   # confirm 51518860+Technical-1@users.noreply.github.com (set it if not)
 printf '/target\nCargo.lock\n' > .gitignore   # library crate: Cargo.lock not committed
 ```
-(Copy `LICENSE-MIT` and `LICENSE-APACHE` from `~/CodeRepos/coinbasis/` so the dual license matches.)
+(Copy `LICENSE-MIT` and `LICENSE-APACHE` from `~/CodeRepos/coinbasis-rs/` so the dual license matches.)
 
 - [ ] **Step 2: `Cargo.toml`:**
 ```toml

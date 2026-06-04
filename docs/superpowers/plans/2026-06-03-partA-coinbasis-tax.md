@@ -8,7 +8,7 @@
 
 **Tech Stack:** Rust 2021, `rust_decimal`, `chrono`, optional `serde`; `proptest`/`rust_decimal_macros` dev-deps.
 
-**Repo:** `/Users/jacobkanfer/CodeRepos/coinbasis` (published crate, currently 0.1.1).
+**Repo:** `/Users/jacobkanfer/CodeRepos/coinbasis-rs` (published crate, currently 0.1.1).
 
 **Author rule (hook-enforced):** author `51518860+Technical-1@users.noreply.github.com`; NO Co-Authored-By / Claude / AI attribution; never `--no-verify`. Verify `git config user.email` before the first commit.
 
@@ -33,7 +33,7 @@
 
 - [ ] **Step 1: Branch + write the failing test.**
 ```bash
-cd /Users/jacobkanfer/CodeRepos/coinbasis && git checkout -b feat/tax-brackets
+cd /Users/jacobkanfer/CodeRepos/coinbasis-rs && git checkout -b feat/tax-brackets
 ```
 Create `src/tax.rs` containing only this test module first:
 ```rust
@@ -409,7 +409,7 @@ git add Cargo.toml Cargo.lock README.md
 git commit -m "Release 0.2.0: tax bracket estimation"
 git checkout main && git merge --ff-only feat/tax-brackets
 ```
-- [ ] **Step 6: PUBLISH GATE.** Controller stops and asks **Jacob to run `cargo publish`** in `~/CodeRepos/coinbasis` and confirm `coinbasis 0.2.0` is live on crates.io before Part C's tax tasks (C1).
+- [ ] **Step 6: PUBLISH GATE.** Controller stops and asks **Jacob to run `cargo publish`** in `~/CodeRepos/coinbasis-rs` and confirm `coinbasis 0.2.0` is live on crates.io before Part C's tax tasks (C1).
 
 ---
 

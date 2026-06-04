@@ -2,7 +2,7 @@
 
 **Author:** Jacob Kanfer · **Date:** 2026-06-03 · **Status:** Approved (design); pending spec review
 
-Part A of the 3-part Crypto-Price-Tracker-V2 parity effort (A: coinbasis tax · B: cryptolytics · C: V2 consumption). Repo: `~/CodeRepos/coinbasis` (published crate, currently 0.1.1).
+Part A of the 3-part Crypto-Price-Tracker-V2 parity effort (A: coinbasis tax · B: cryptolytics · C: V2 consumption). Repo: `~/CodeRepos/coinbasis-rs` (published crate, currently 0.1.1).
 
 ## 1. Scope
 
