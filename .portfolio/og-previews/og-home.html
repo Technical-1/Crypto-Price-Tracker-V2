@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    @import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+    :root {
+      --bg-0: #05080c;
+      --green: #34e29b;
+      --red: #f87171;
+      --cyan: #38bdf8;
+      --amber: #fbbf24;
+      --text: #e8eef5;
+      --muted: #7d8da0;
+      --panel: #0a121d;
+      --border: rgba(120, 150, 170, 0.22);
+    }
+    .og-card {
+      width: 1200px; height: 630px;
+      background:
+        radial-gradient(circle at 6% 8%, rgba(56, 189, 248, 0.16), transparent 38%),
+        radial-gradient(circle at 96% 92%, rgba(52, 226, 155, 0.14), transparent 42%),
+        linear-gradient(150deg, #0a1018 0%, var(--bg-0) 100%);
+      position: relative; overflow: hidden; font-family: 'Sora', sans-serif;
+    }
+    .og-card::before {
+      content: ""; position: absolute; inset: 0;
+      background-image: radial-gradient(rgba(120, 150, 170, 0.10) 1.2px, transparent 1.2px);
+      background-size: 34px 34px; mask-image: radial-gradient(circle at 25% 35%, #000 60%, transparent 100%);
+    }
+
+    .content { position: absolute; z-index: 3; top: 70px; left: 70px; width: 470px; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 11px;
+      font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 700;
+      letter-spacing: 2.5px; color: var(--cyan); text-transform: uppercase;
+      padding: 9px 16px; border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 999px; background: rgba(56, 189, 248, 0.07); }
+    .pulse { width: 11px; height: 11px; border-radius: 50%; background: var(--green);
+      box-shadow: 0 0 14px 3px rgba(52, 226, 155, 0.8); }
+    h1 { margin-top: 26px; font-size: 78px; font-weight: 800; letter-spacing: -3px;
+      line-height: 0.98; color: var(--text); }
+    h1 .accent { background: linear-gradient(100deg, var(--green) 5%, var(--cyan) 95%);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+    .ver { display:inline-block; font-family:'JetBrains Mono',monospace; font-size: 26px; font-weight:700;
+      color: var(--bg-0); background: var(--green); border-radius: 10px; padding: 2px 14px; margin-left: 6px;
+      vertical-align: middle; }
+    .subhead { margin-top: 24px; font-size: 24px; font-weight: 400; color: var(--muted); line-height: 1.42; }
+
+    /* terminal window */
+    .term { position: absolute; z-index: 4; top: 96px; right: 56px; width: 600px;
+      background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+      box-shadow: 0 30px 80px rgba(0,0,0,0.55), 0 0 0 1px rgba(56,189,248,0.06);
+      overflow: hidden; font-family: 'JetBrains Mono', monospace; }
+    .titlebar { display: flex; align-items: center; gap: 8px; padding: 13px 16px;
+      background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border); }
+    .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .titlebar .name { margin-left: 12px; font-size: 15px; color: var(--muted); }
+    .titlebar .method { margin-left: auto; font-size: 14px; color: var(--amber); font-weight: 700; }
+
+    .tabs { display: flex; gap: 0; padding: 0 8px; border-bottom: 1px solid var(--border); }
+    .tab { font-size: 15px; padding: 13px 13px; color: var(--muted); }
+    .tab.on { color: var(--cyan); border-bottom: 2px solid var(--cyan); font-weight: 700; }
+
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: right; padding: 11px 14px; font-size: 17px; }
+    th { color: var(--muted); font-size: 13px; letter-spacing: 1px; font-weight: 500; }
+    th:first-child, td:first-child { text-align: left; }
+    .sym { color: var(--text); font-weight: 700; }
+    .up { color: var(--green); } .down { color: var(--red); }
+    .spark { color: var(--green); letter-spacing: -1px; font-size: 18px; }
+    .spark.r { color: var(--red); }
+    tr.total td { border-top: 1px solid var(--border); color: var(--amber); font-weight: 700; padding-top: 13px; }
+    tr.total td:first-child { color: var(--amber); }
+
+    .footer { position: absolute; bottom: 36px; left: 70px; right: 70px; z-index: 5;
+      display: flex; justify-content: space-between; align-items: center; }
+    .ftags { display: flex; gap: 11px; }
+    .ftag { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 500;
+      padding: 8px 15px; border-radius: 999px; border: 1px solid var(--border);
+      background: rgba(10, 18, 28, 0.6); color: #aebccb; }
+    .url { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; color: var(--green); }
+  </style>
+</head>
+<body>
+  <div class="og-card">
+    <div class="content">
+      <div class="eyebrow"><span class="pulse"></span>Rust &bull; ratatui TUI</div>
+      <h1>Crypto<br>Price <span class="accent">Tracker</span><span class="ver">v2</span></h1>
+      <div class="subhead">Live prices, cost-basis &amp; tax, rebalancing and performance &mdash; a fast portfolio dashboard in your terminal.</div>
+    </div>
+
+    <div class="term">
+      <div class="titlebar">
+        <span class="dot" style="background:#ff5f57"></span>
+        <span class="dot" style="background:#febc2e"></span>
+        <span class="dot" style="background:#28c840"></span>
+        <span class="name">crypto-price-tracker-v2</span>
+        <span class="method">FIFO</span>
+      </div>
+      <div class="tabs">
+        <span class="tab on">Prices</span><span class="tab">Holdings</span><span class="tab">Valuation</span>
+        <span class="tab">Tax</span><span class="tab">Rebalance</span><span class="tab">Perf</span>
+      </div>
+      <table>
+        <tr><th>SYM</th><th>PRICE</th><th>24H%</th><th>VALUE</th><th>P&amp;L</th><th>7D</th></tr>
+        <tr><td class="sym">BTC</td><td>67,420</td><td class="up">+2.4</td><td>33,710</td><td class="up">+18,710</td><td class="spark">&#9601;&#9603;&#9602;&#9605;&#9604;&#9607;&#9608;</td></tr>
+        <tr><td class="sym">ETH</td><td>3,180</td><td class="up">+1.1</td><td>6,360</td><td class="up">+2,360</td><td class="spark">&#9602;&#9601;&#9603;&#9605;&#9604;&#9606;&#9608;</td></tr>
+        <tr><td class="sym">SOL</td><td>148.20</td><td class="down">-3.2</td><td>2,964</td><td class="down">-512</td><td class="spark r">&#9608;&#9606;&#9607;&#9604;&#9603;&#9602;&#9601;</td></tr>
+        <tr><td class="sym">XLM</td><td>0.118</td><td class="up">+0.6</td><td>1,180</td><td class="up">+430</td><td class="spark">&#9601;&#9602;&#9602;&#9604;&#9603;&#9605;&#9606;</td></tr>
+        <tr class="total"><td>TOTAL</td><td></td><td></td><td>44,214</td><td>+20,988</td><td></td></tr>
+      </table>
+    </div>
+
+    <div class="footer">
+      <div class="ftags">
+        <span class="ftag">Rust</span>
+        <span class="ftag">ratatui</span>
+        <span class="ftag">tokio</span>
+        <span class="ftag">CoinGecko</span>
+      </div>
+      <div class="url">github.com/Technical-1</div>
+    </div>
+  </div>
+</body>
+</html>
