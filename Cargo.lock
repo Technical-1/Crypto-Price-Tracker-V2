@@ -277,9 +277,7 @@ checksum = "c8d4a3bb8b1e0c1050499d1815f5ab16d04f0959b233085fb31653fbfc9d98f9"
 
 [[package]]
 name = "coinbasis"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c265b0b91dc0de61470f8b3a569c747c97f4e2e4ea0420cffdfe4b9a91e59483"
+version = "0.2.0"
 dependencies = [
  "chrono",
  "rust_decimal",
@@ -2696,3 +2694,7 @@ name = "zmij"
 version = "1.0.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b8848ee67ecc8aedbaf3e4122217aff892639231befc6a1b58d29fff4c2cabaa"
+
+[[patch.unused]]
+name = "cryptolytics"
+version = "0.1.0"

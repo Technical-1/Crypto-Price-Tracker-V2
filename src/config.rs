@@ -3,6 +3,7 @@
 use std::collections::BTreeMap;
 use std::path::PathBuf;
 
+use coinbasis::tax::TaxConfig;
 use coinbasis::CostBasisMethod;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -22,12 +23,6 @@ pub struct Config {
     #[serde(default)]
     pub symbols: BTreeMap<String, String>,
     pub cache: CacheConfig,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TaxConfig {
-    pub short_term_rate: f64,
-    pub long_term_rate: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -108,8 +103,8 @@ impl Config {
             display_currency: "usd".into(),
             refresh_seconds: 60,
             tax: TaxConfig {
-                short_term_rate: 0.24,
-                long_term_rate: 0.15,
+                jurisdiction: "US".into(),
+                ..TaxConfig::default()
             },
             targets,
             rebalance: RebalanceConfig {
@@ -137,7 +132,10 @@ mod tests {
           "default_method": "Fifo",
           "display_currency": "usd",
           "refresh_seconds": 60,
-          "tax": { "short_term_rate": 0.24, "long_term_rate": 0.15 },
+          "tax": { "jurisdiction": "US", "long_term_threshold_days": 365,
+                   "short_term_rate": "0.35",
+                   "long_term_brackets": [ {"up_to": "47025", "rate": "0.0"},
+                                           {"up_to": null, "rate": "0.20"} ] },
           "targets": { "bitcoin": 0.6, "ethereum": 0.3, "solana": 0.1 },
           "rebalance": { "band": 0.05, "min_trade_usd": 25, "strategy": "Band" },
           "symbols": { "bitcoin": "BTC", "ethereum": "ETH" },
@@ -151,7 +149,9 @@ mod tests {
         assert_eq!(c.ledger_path, "ledger.json");
         assert_eq!(c.default_method, coinbasis::CostBasisMethod::Fifo);
         assert_eq!(c.refresh_seconds, 60);
-        assert_eq!(c.tax.short_term_rate, 0.24);
+        assert_eq!(c.tax.short_term_rate, rust_decimal_macros::dec!(0.35));
+        assert_eq!(c.tax.long_term_threshold_days, 365);
+        assert_eq!(c.tax.long_term_brackets.len(), 2);
         assert_eq!(c.rebalance.strategy, crate::rebalance::Strategy::Band);
     }
 
