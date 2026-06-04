@@ -1,0 +1,56 @@
+name: Bump Homebrew formula
+
+# On every version tag, update the source formula in Technical-1/homebrew-tap
+# to point at the new release tarball + its SHA-256. The GitHub auto-generated
+# archive tarball exists as soon as the tag is pushed, so this does not depend
+# on the crates.io publish job.
+#
+# Auth: a read-write deploy key for ONLY the homebrew-tap repo, stored as the
+# HOMEBREW_TAP_DEPLOY_KEY secret (scoped to that one repo, not a broad PAT).
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to bump the formula to (e.g. v0.1.0)"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  bump:
+    name: bump homebrew-tap formula
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tap (via deploy key)
+        uses: actions/checkout@v4
+        with:
+          repository: Technical-1/homebrew-tap
+          ssh-key: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+
+      - name: Update formula to ${{ github.event.inputs.tag || github.ref_name }}
+        env:
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          url="https://github.com/Technical-1/Crypto-Price-Tracker-V2/archive/refs/tags/${TAG}.tar.gz"
+          sha="$(curl -fsSL "$url" | shasum -a 256 | awk '{print $1}')"
+          echo "tag=${TAG} version=${version} sha256=${sha}"
+
+          formula="Formula/crypto-price-tracker-v2.rb"
+          sed -i -E "s|^  url \".*\"|  url \"${url}\"|" "$formula"
+          sed -i -E "s|^  sha256 \".*\"|  sha256 \"${sha}\"|" "$formula"
+
+          git config user.name "Technical-1"
+          git config user.email "51518860+Technical-1@users.noreply.github.com"
+          if git diff --quiet; then
+            echo "Formula already at ${TAG} (sha ${sha}); nothing to do."
+            exit 0
+          fi
+          git add "$formula"
+          git commit -m "crypto-price-tracker-v2 ${version}"
+          git push
