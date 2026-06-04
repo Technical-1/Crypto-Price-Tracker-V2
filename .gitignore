@@ -1,3 +1,9 @@
 /target
 **/*.rs.bk
 .DS_Store
+
+# Local working data — may contain your API key (config) or personal holdings
+# (ledger). The *.example.* templates stay tracked; your real files do not.
+/config.json
+/ledger.json
+/snapshots.jsonl
