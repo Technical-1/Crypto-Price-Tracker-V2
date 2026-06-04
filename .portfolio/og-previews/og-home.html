@@ -43,9 +43,11 @@
       line-height: 0.98; color: var(--text); }
     h1 .accent { background: linear-gradient(100deg, var(--green) 5%, var(--cyan) 95%);
       -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
-    .ver { display:inline-block; font-family:'JetBrains Mono',monospace; font-size: 46px; font-weight:800;
-      color: var(--bg-0); background: var(--green); border-radius: 12px; padding: 4px 20px; margin-left: 12px;
-      vertical-align: middle; box-shadow: 0 0 30px rgba(52, 226, 155, 0.5); letter-spacing: -1px; }
+    .v2line { display: block; margin-top: 4px; font-size: 132px; font-weight: 800; letter-spacing: -6px;
+      line-height: 0.9;
+      background: linear-gradient(100deg, var(--green) 0%, var(--cyan) 100%);
+      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+      filter: drop-shadow(0 0 36px rgba(52, 226, 155, 0.5)); }
     .subhead { margin-top: 24px; font-size: 24px; font-weight: 400; color: var(--muted); line-height: 1.42; }
 
     /* terminal window */
@@ -88,7 +90,7 @@
   <div class="og-card">
     <div class="content">
       <div class="eyebrow"><span class="pulse"></span>Rust &bull; ratatui TUI</div>
-      <h1>Crypto<br>Price <span class="accent">Tracker</span><span class="ver">V2</span></h1>
+      <h1>Crypto<br>Price <span class="accent">Tracker</span><span class="v2line">V2</span></h1>
       <div class="subhead">Live prices, cost-basis &amp; tax, rebalancing and performance &mdash; a fast portfolio dashboard in your terminal.</div>
     </div>
 
@@ -121,7 +123,6 @@
         <span class="ftag">tokio</span>
         <span class="ftag">CoinGecko</span>
       </div>
-      <div class="url">crates.io/crates/crypto-price-tracker-v2</div>
     </div>
   </div>
 </body>
