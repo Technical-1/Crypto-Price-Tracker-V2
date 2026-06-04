@@ -98,10 +98,12 @@ mod tests {
         let mut a = App::new(Config::example(), &txs).unwrap();
         a.history = (0..points)
             .map(|i| Snapshot {
-                at: Utc
+                date: Utc
                     .with_ymd_and_hms(2026, 1, 1 + i as u32, 0, 0, 0)
                     .unwrap(),
                 total_value: dec!(100) + rust_decimal::Decimal::from(i),
+                cost: dec!(0),
+                pl: dec!(0),
             })
             .collect();
         a

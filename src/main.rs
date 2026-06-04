@@ -91,7 +91,7 @@ async fn main() -> Result<()> {
     let mut app = App::new(config.clone(), &txs).context("building app")?;
     let cache = PriceCache::new(config.cache.expanded_dir(), config.cache.ttl_seconds);
     let vs = config.display_currency.clone();
-    let history_path = "history.json".to_string();
+    let history_path = "history.jsonl".to_string();
 
     if let Ok(Some(book)) = cache.load_fresh() {
         app.set_prices(book);
@@ -234,7 +234,12 @@ async fn run(
                         app.set_prices(book);
                         if let Some(report) = &app.derived.valuation {
                             let _ = perf::record_snapshot(
-                                history_path, report.total_value, Utc::now(), refresh_seconds as i64,
+                                history_path,
+                                report.total_value,
+                                report.total_cost,
+                                report.total_unrealized,
+                                Utc::now(),
+                                refresh_seconds as i64,
                             );
                         }
                         if let Ok(h) = perf::load_history(history_path) {
