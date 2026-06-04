@@ -90,7 +90,7 @@ fn draw_status_bar(f: &mut Frame, area: Rect, app: &App) {
 
 fn draw_help(f: &mut Frame, area: Rect) {
     let w = area.width.min(60);
-    let h = area.height.min(16);
+    let h = area.height.min(18);
     let popup = Rect {
         x: area.x + (area.width.saturating_sub(w)) / 2,
         y: area.y + (area.height.saturating_sub(h)) / 2,
@@ -104,6 +104,8 @@ fn draw_help(f: &mut Frame, area: Rect) {
         Line::from("g      toggle grouping"),
         Line::from("[ / ]  change tax year"),
         Line::from("t      toggle rebalance strategy"),
+        Line::from("w      cycle target strategy (Custom/Equal/MarketCap)"),
+        Line::from("p      toggle Performance playback"),
         Line::from("r      refresh now    e  export (Tax/Holdings)"),
         Line::from("↑/↓    move selection"),
         Line::from("?      toggle help     q/Esc  quit"),
