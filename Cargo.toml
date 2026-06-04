@@ -25,7 +25,7 @@ futures = "0.3"
 
 
 [patch.crates-io]
-coinbasis = { path = "/Users/jacobkanfer/CodeRepos/coinbasis" }
+coinbasis = { path = "/Users/jacobkanfer/CodeRepos/coinbasis-rs" }
 cryptolytics = { path = "/Users/jacobkanfer/CodeRepos/cryptolytics-rs" }
 
 [profile.release]
