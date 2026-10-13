@@ -11,28 +11,35 @@ live prices come from [`coingecko`](https://crates.io/crates/coingecko).
 
 ## Features
 
-- **Prices / P&L view** — live prices, 24h/7d change, unrealized gain per coin,
-  sorted by value or profit. Sparklines and market cap from CoinGecko.
-- **Holdings view** — open cost-basis lots per wallet with current market value,
-  unrealized P&L, and optional wallet grouping.
-- **Valuation / Allocation view** — total portfolio value, cost, return, and
-  per-coin allocation percentages.
-- **Tax view** — capital-gains report for a selectable tax year with short-term,
-  long-term, and total figures; progressive bracket estimation via `coinbasis::tax`.
-  Export to CSV + JSON with `e`.
+- **Prices / P&L view** — live price, 24h/7d change, holdings, cost, value,
+  unrealized profit and allocation per coin, with a 7-day sparkline column and a
+  totals row. Sortable by symbol, price, 24h change, value, or profit (`s`); a
+  detail pane shows market cap, 24h volume, and all-time high for the selected coin.
+- **Holdings view** — open cost-basis positions per asset and wallet, with
+  average cost, current market value, unrealized P&L, and a totals row.
+- **Valuation / Allocation view** — total portfolio value, cost, unrealized P&L,
+  and return, a per-coin allocation bar chart, and a warning listing any held
+  assets with no price.
+- **Tax view** — realized gains for a selectable tax year (`[` / `]`), one row
+  per disposal with acquired/disposed dates and term, plus short-term, long-term,
+  and income totals and a bracketed tax estimate via `coinbasis::tax`. Export to
+  CSV + JSON with `e`.
 - **Rebalance view** — drift vs. configured target weights, buy/sell suggestions
   (Band or Full strategy), per-coin volatility and annualized vol, pairwise return
   correlation matrix, value-weighted portfolio volatility, and a buy-and-hold
   backtest comparing current vs. target weights over the history window. Cycle
   target strategy (Custom / Equal / MarketCap) with `w`.
 - **Performance view** — reconstructs daily portfolio snapshots by replaying the
-  ledger against per-coin price history; chart mode shows value + P&L over time
-  with volatility, Sharpe ratio, max drawdown, and cumulative return. Playback
-  mode (`p`) gives a scrollable day-by-day list with per-coin holdings breakdown.
+  ledger against per-coin price history (falling back to snapshots recorded on
+  each refresh); chart mode shows value + P&L over time with volatility, Sharpe
+  ratio, max drawdown, and cumulative return. Playback mode (`p`) gives a
+  scrollable list with a P&L bar per point and a per-coin breakdown for the
+  selected date.
 - **Global cost-basis method switcher** — cycle FIFO / LIFO / HIFO / Average with
   `m`; all derived reports recompute instantly.
-- **On-disk price cache** — configurable TTL; falls back to last-good cache when
-  a fetch fails or when running with `--offline`.
+- **On-disk price cache** — configurable TTL; on startup the last cached prices
+  are shown (marked `[stale]` once past the TTL) before the network responds, and
+  `--offline` runs from the cache alone.
 - **CSV ledger import** — `--import <file>` appends non-duplicate rows from a
   `date,coin,action,quantity,price_usd,fee_usd[,wallet]` CSV without launching
   the TUI.
@@ -80,11 +87,13 @@ cd Crypto-Price-Tracker-V2
 cargo run --release
 ```
 
-On first run with no config file, the app writes a starter config to
-`~/.config/crypto-price-tracker-v2/config.json` and prints the path. Edit that
-file to set your ledger path, display currency, tax brackets, target allocation
-weights, and CoinGecko key/plan. Asset IDs are CoinGecko coin IDs (`bitcoin`,
-`ethereum`, `solana`, …).
+If no config file is found (see the lookup order under Configuration), the app
+writes a starter config to `~/.config/crypto-price-tracker-v2/config.json` and
+prints the path. Edit that file to set your ledger path, display currency, tax
+brackets, target allocation weights, and CoinGecko key/plan. A missing ledger
+file is treated as an empty portfolio, so the app starts cleanly before you have
+added any transactions. Asset IDs are CoinGecko coin IDs (`bitcoin`, `ethereum`,
+`solana`, …).
 
 ### Usage
 
@@ -116,19 +125,21 @@ fee defaults to `0`. Invalid rows are skipped and reported to stderr.
 | `default_method` | Starting cost-basis method: `Fifo`, `Lifo`, `Hifo`, `Average` |
 | `display_currency` | Quote currency (e.g. `usd`) |
 | `refresh_seconds` | Auto-refresh interval |
-| `tax` | `coinbasis::TaxConfig` — jurisdiction, long-term threshold, bracket list |
-| `targets` | Per-coin allocation weights for Custom strategy |
-| `rebalance` | Band tolerance, minimum trade size, default strategy |
+| `tax` | `coinbasis::tax::TaxConfig` — jurisdiction, long-term threshold in days, flat short-term rate, long-term bracket list |
+| `targets` | Per-coin allocation weights for the Custom target strategy (normalized, so they need not sum to 1) |
+| `rebalance` | Band tolerance, minimum trade size in USD, default strategy (`Band` or `Full`) |
 | `symbols` | Display ticker overrides (falls back to uppercased coin ID) |
 | `cache` | Cache directory and TTL in seconds |
 | `coingecko` | `api_key` and `plan` (`Demo` or `Pro`) |
-| `history_days` | Days of daily price history fetched per coin (default `90`) |
+| `history_days` | Days of price history fetched per coin for analytics and reconstruction (default `90`) |
 
 The app looks for a config file in this order: `--config <path>` if given, then
 `./config.json` in the current directory, then
 `~/.config/crypto-price-tracker-v2/config.json` (respecting `$XDG_CONFIG_HOME`).
 A relative `ledger_path` resolves against the config file's directory, so a
-global config works from any working directory.
+global config works from any working directory; `--ledger <path>` overrides it.
+Recorded performance snapshots are written to `history.jsonl` in the same
+directory as the config file.
 
 The `COINGECKO_API_KEY` environment variable takes precedence over the config value.
 
@@ -153,46 +164,57 @@ Tax figures shown in the Tax view are estimates only and are not tax advice.
 
 ```bash
 # Format
-cargo fmt
+cargo fmt --all
 
-# Lint
-cargo clippy -- -D warnings
+# Lint (as run in CI)
+cargo clippy --all-targets --all-features -- -D warnings
 
 # Run all tests (unit + integration)
 cargo test
 
-# Optimized build
+# Optimized build (LTO enabled in the release profile)
 cargo build --release
 ```
+
+GitHub Actions runs format, clippy, tests, and `cargo doc` on every push and pull
+request. Pushing a `v*` tag publishes the crate to crates.io, creates a GitHub
+Release, and updates the Homebrew formula in `Technical-1/homebrew-tap`.
 
 ## Project Structure
 
 ```
-src/
-├── main.rs          # Entry point: CLI parsing, terminal setup, async event loop
-├── app.rs           # App state and recompute logic (method/year/prices → reports)
-├── event.rs         # Key → Action mapping and action dispatch
-├── config.rs        # Config deserialization (config.json)
-├── ledger.rs        # JSON ledger I/O and CSV import
-├── portfolio.rs     # Thin coinbasis::Portfolio wrapper + HoldingValue enrichment
-├── perf.rs          # Snapshot persistence (JSONL), metrics, ledger-replay reconstruction
-├── rebalance.rs     # Drift computation, trade suggestions, Band/Full strategies
-├── export.rs        # CSV + JSON export for Tax and Holdings views
-├── error.rs         # AppError enum
-├── lib.rs           # Crate root
-├── prices/
-│   ├── mod.rs       # PriceSource trait, PriceBook, Quote, HistoryData types
-│   ├── coingecko.rs # CoinGeckoSource: coins_markets + coin_market_chart fetches
-│   ├── cache.rs     # On-disk PriceBook cache with TTL and last-good fallback
-│   └── mock.rs      # MockSource for tests
-└── ui/
-    ├── mod.rs       # Frame layout: tab bar, active view, status bar, help overlay
-    ├── prices.rs    # Prices / P&L view
-    ├── holdings.rs  # Holdings view
-    ├── valuation.rs # Valuation / Allocation view
-    ├── tax.rs       # Tax view
-    ├── rebalance.rs # Rebalance view
-    └── perf.rs      # Performance chart + playback view
+Crypto-Price-Tracker-V2/
+├── src/
+│   ├── main.rs          # Entry point: CLI parsing, terminal setup, async event loop
+│   ├── app.rs           # App state and recompute logic (method/year/prices → reports)
+│   ├── event.rs         # Key → Action mapping and action dispatch
+│   ├── config.rs        # Config types, lookup order, first-run starter config
+│   ├── ledger.rs        # JSON ledger I/O and CSV import
+│   ├── portfolio.rs     # Thin coinbasis::Portfolio wrapper + HoldingValue enrichment
+│   ├── perf.rs          # Snapshot persistence (JSONL), metrics, ledger-replay reconstruction
+│   ├── rebalance.rs     # Drift computation, trade suggestions, Band/Full strategies
+│   ├── export.rs        # CSV + JSON export for Tax and Holdings views
+│   ├── error.rs         # AppError enum
+│   ├── lib.rs           # Crate root
+│   ├── prices/
+│   │   ├── mod.rs       # PriceSource trait, PriceBook, Quote, HistoryData types
+│   │   ├── coingecko.rs # CoinGeckoSource: coins_markets + coin_market_chart fetches
+│   │   ├── cache.rs     # On-disk PriceBook cache with TTL and last-good fallback
+│   │   └── mock.rs      # MockSource for tests
+│   └── ui/
+│       ├── mod.rs       # Frame layout: tab bar, active view, status bar, help overlay
+│       ├── prices.rs    # Prices / P&L view
+│       ├── holdings.rs  # Holdings view
+│       ├── valuation.rs # Valuation / Allocation view
+│       ├── tax.rs       # Tax view
+│       ├── rebalance.rs # Rebalance view
+│       └── perf.rs      # Performance chart + playback view
+├── tests/
+│   └── integration.rs   # End-to-end recompute against MockSource prices
+├── .github/workflows/   # CI, crates.io release, Homebrew formula bump
+├── config.example.json  # Annotated starting config
+├── ledger.example.json  # Minimal Buy + Income ledger
+└── transactions.example.csv # Sample input for --import
 ```
 
 ## Keybindings
@@ -201,15 +223,15 @@ src/
 |---|---|
 | `Tab` / `→` | Next view |
 | `Shift-Tab` / `←` | Previous view |
-| `↑` / `↓` | Move selection |
+| `↑` / `↓` | Move selection (Prices detail pane, Performance playback) |
 | `m` | Cycle cost-basis method (FIFO → LIFO → HIFO → AVG) |
-| `s` | Cycle sort column |
-| `g` | Toggle wallet grouping |
+| `s` | Cycle Prices sort column (Symbol / Price / 24h / Value / Profit) |
+| `g` | Toggle the Holdings grouping label (by asset / by wallet) |
 | `[` / `]` | Previous / next tax year |
 | `t` | Toggle rebalance strategy (Band / Full) |
 | `w` | Cycle target strategy (Custom / Equal / MarketCap) |
 | `p` | Toggle Performance chart / playback mode |
-| `r` | Refresh prices now |
+| `r` | Refresh prices and price history now |
 | `e` | Export to CSV + JSON (Tax or Holdings view) |
 | `?` | Toggle help overlay |
 | `q` / `Esc` | Quit |
